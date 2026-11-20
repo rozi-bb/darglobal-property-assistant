@@ -1,6 +1,7 @@
 """Endpoint chat + fungsi `run_agent` yang dipakai bersama oleh API dan UI.
 
-Alur (canvas langkah 13): [cek login: di-skip] -> [cek usage: di-skip] -> panggil agent -> kirim event.
+Alur (canvas langkah 13): [cek login: di-skip] -> rate limit per IP (server/ratelimit.py) -> panggil agent
+-> kirim event.
 
 Event agent:
 - `StepEvent`   : agent memanggil tool (ditampilkan sebagai langkah, mis. "DarGlobal search: ...")
@@ -17,8 +18,8 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
@@ -26,6 +27,7 @@ from langgraph.types import Command
 from pydantic import BaseModel, Field
 
 from agent.middleware import answer_text
+from server.ratelimit import client_ip, get_limiter, limit_message, trust_proxy_headers
 from server.runtime import get_graph
 
 logger = logging.getLogger(__name__)
@@ -129,15 +131,24 @@ def _sse(event: str, data: dict[str, Any]) -> str:
 EVENT_NAMES = {StepEvent: "step", AskEvent: "ask", AnswerEvent: "answer"}
 
 
-@router.post("/chat")
-async def chat(req: ChatRequest) -> StreamingResponse:
+@router.post("/chat", response_model=None)
+async def chat(req: ChatRequest, request: Request) -> Response:
     """Chat dengan Server-Sent Events.
 
     Event: `start` {thread_id} -> `step` {tool, label, args} ... -> `answer` {text} | `ask` {question, options}
     -> (`error` {message}) -> `end` {}.
     Kirim `thread_id` yang sama untuk melanjutkan percakapan. Setelah event `ask`, kirim jawaban user
     (salah satu `options` atau teks bebas) sebagai `message` dengan `thread_id` yang sama.
+    Kena rate limit → HTTP 429 {error, retry_after_s} + header `Retry-After`.
     """
+    peer = request.client.host if request.client else None
+    decision = get_limiter().check(client_ip(request.headers, peer, trust_proxy_headers()))
+    if not decision.allowed:
+        return JSONResponse(
+            status_code=429,
+            content={"error": limit_message(decision), "retry_after_s": decision.retry_after_s},
+            headers={"Retry-After": str(decision.retry_after_s)},
+        )
     thread_id = req.thread_id or uuid4().hex
 
     async def events() -> AsyncIterator[str]:

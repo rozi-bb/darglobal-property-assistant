@@ -30,7 +30,13 @@ from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
 
-from agent.middleware import SAFE_ANSWER, check_answer, current_run, is_feedback
+from agent.middleware import (
+    REFUSAL_ANSWER,
+    SAFE_ANSWER,
+    check_answer,
+    current_run,
+    is_feedback,
+)
 from evals.evaluators import CODE_EVALUATORS, Result, make_correctness_judge
 from server.chat import AnswerEvent, AskEvent, run_agent
 
@@ -98,6 +104,7 @@ async def run_case(graph: CompiledStateGraph, inputs: dict[str, Any]) -> dict[st
         "asked": asked,
         "revisions": int(state.values.get("answer_revisions", 0) or 0),
         "safe_answer": answer.strip() == SAFE_ANSWER,
+        "leak_blocked": answer.strip() == REFUSAL_ANSWER,  # pagar kebocoran (kode) mengganti jawaban model
         "unsupported_urls": check.unknown_urls,
         "unsupported_prices": check.unknown_prices,
         "first_event_s": round(first_event_s, 2),
@@ -195,6 +202,7 @@ def summarize(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
         "fabricated": sum(not passed(r, "grounded") for r in rows),
         "all_pass": sum(all(passed(r, k) for k in r["scores"]) for r in rows),
         "errors": sum("error" in r["outputs"] for r in rows),
+        "leak_blocked": sum(bool(r["outputs"].get("leak_blocked")) for r in rows),
         "first_event_p50_s": round(statistics.median(firsts), 2) if firsts else None,
         "total_p50_s": round(statistics.median(totals), 2) if totals else None,
         "total_max_s": round(max(totals), 2) if totals else None,
@@ -228,6 +236,7 @@ def render_report(rows: Sequence[dict[str, Any]], summary: dict[str, Any], meta:
         f"| Event pertama (p50, lokal) | {summary['first_event_p50_s']} dtk | < 5 dtk (diukur di production) |",
         f"| Jawaban final (p50 / maks) | {summary['total_p50_s']} / {summary['total_max_s']} dtk | – |",
         f"| Error run | {summary['errors']} | 0 |",
+        f"| Jawaban diblokir pagar kebocoran (kode) | {summary['leak_blocked']} | – |",
         "",
         "Per evaluator: " + " · ".join(f"`{k}` {v:.0%}" for k, v in summary["rate"].items()),
         "",
@@ -256,6 +265,7 @@ def render_report(rows: Sequence[dict[str, Any]], summary: dict[str, Any], meta:
             "",
             f"Tool: {', '.join(t['name'] for t in o.get('tools', [])) or '-'}",
             "",
+            *(["Pagar kebocoran (kode) mengganti jawaban model dengan penolakan.", ""] if o.get("leak_blocked") else []),
             *([f"Catatan gagal: {'; '.join(notes)}", ""] if notes else []),
             *([f"Error: {o['error']}", ""] if o.get("error") else []),
             "<details><summary>Jawaban</summary>",

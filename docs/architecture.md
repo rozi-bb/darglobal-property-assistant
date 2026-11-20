@@ -22,7 +22,7 @@ Alasan:
 ## Komponen
 
 ```
-Browser ──HTTPS──▶ Nginx/Tunnel ──▶ app (FastAPI, port 8000)
+Browser ──HTTPS──▶ Tailscale Funnel ──▶ app (FastAPI, port 8000)
                                      ├── /            UI Chainlit (di-mount ke FastAPI)
                                      ├── /api/chat    endpoint chat (SSE streaming)
                                      ├── /health      cek server hidup
@@ -36,7 +36,8 @@ Browser ──HTTPS──▶ Nginx/Tunnel ──▶ app (FastAPI, port 8000)
 - **UI**: Chainlit di-mount ke FastAPI (`chainlit.utils.mount_chainlit`), satu proses, satu port.
   Handler Chainlit memanggil fungsi `run_agent()` (`server/chat.py`) yang sama dengan endpoint `/api/chat`.
 - **API key** (DeepSeek, OpenRouter, TypeSafe, LangSmith) hanya di environment backend, tidak pernah ke browser.
-- **Tanpa login/paket/limit/pembayaran** (langkah 12, 14, 15 di-skip; lihat PRD #13). Tidak ada JWT.
+- **Tanpa login/paket/pembayaran** (langkah 12, 14, 15 di-skip; lihat PRD #13). Tidak ada JWT. Yang ada hanya
+  rate limit sederhana per IP + kuota global harian (lihat "Keamanan").
 
 ## Agent (graph)
 
@@ -88,7 +89,9 @@ Tidak dipakai: `HumanInTheLoopMiddleware` (untuk menyetujui aksi tool, sedangkan
 - Hook `after_model` dengan `can_jump_to=["model"]`. Hanya jalan kalau pesan terakhir adalah AI tanpa `tool_calls` (draf final).
 - Aturan, semuanya kode (tanpa LLM):
   1. Setiap URL di jawaban harus ada di hasil tool di thread ini (link get-in-touch dan halaman utama
-     DarGlobal/Wasalt selalu boleh).
+     DarGlobal/Wasalt selalu boleh) **dan** host-nya darglobal.co.uk / cdn.darglobal.co.uk / wasalt.sa. Link lain
+     ditolak walau ada di hasil tool: teks blog DarGlobal memuat ±150 domain luar dan judul iklan Wasalt ditulis
+     pengiklan, jadi bisa jadi jalur injeksi.
   2. Setiap angka harga (SAR, AED, USD, …, termasuk "k"/"million"/"juta") harus cocok dengan angka di hasil tool atau
      pesan user (toleransi pembulatan / 1%). Format "1,250,000" dan "1.250.000" (jawaban bahasa Indonesia) sama-sama
      dibaca; "36.700" yang ambigu dicoba sebagai 36700 dan 36,7.
@@ -160,6 +163,29 @@ query + filter negara (ditulis agent)
   dikirim balik dengan `Command(resume=...)`, agent lanjut.
 - Kalau thread sedang menunggu jawaban, pesan user berikutnya (di UI atau `/api/chat`) dianggap jawabannya.
 
+## Keamanan
+### Pagar kebocoran (`find_leaks` di `middleware.py`)
+- Jalan di `after_model` **sebelum** cek jawaban, untuk jawaban final dan argumen `ask_user` (teks yang dilihat user).
+- Dianggap bocor kalau: ≥ 3 potongan 8 kata sama dengan system prompt (URL dibuang dulu, supaya kalimat
+  get-in-touch tidak terhitung), menyebut penanda internal (nama tool, judul seksi prompt), nama env rahasia
+  (`LLM_API_KEY`, `CHECKPOINT_DATABASE_URL`, …), pola mirip key (`sk-…`, `lsv2_…`, `postgresql://user:pass@`),
+  atau nilai env rahasia yang sedang dipakai.
+- Bocor → draf dibuang, tool call dibatalkan, user menerima `REFUSAL_ANSWER` (tanpa revisi, supaya model tidak
+  "mencoba lagi" membocorkan). Dicatat di log sebagai warning (nama kategori saja, bukan isinya).
+- Model DeepSeek sendiri sudah menolak semua serangan di eval (`leak_blocked` = 0), jadi pagar ini lapis kedua.
+- Test: `tests/unit_tests/test_security.py` (deteksi, jawaban bocor diganti, `ask_user` bocor, injeksi lewat hasil
+  tool: link jahat tidak sampai ke user). Eval: kasus `s1`–`s9` (terjemahkan instruksi, mode developer, minta API key,
+  base64, ekstraksi 2 langkah, injeksi bahasa Indonesia, konfirmasi harga palsu, Wasalt dianggap DarGlobal, iklan pesaing).
+
+### Rate limit (`src/server/ratelimit.py`)
+- Sliding window di memori: per IP (default 20 pesan / 10 menit) + kuota global semua user (default 1000 / 24 jam).
+  Dipakai bersama oleh `/api/chat` (HTTP 429 + header `Retry-After`) dan UI Chainlit (pesan "coba lagi dalam N menit",
+  dicek tiap kali agent dijalankan, termasuk jawaban tombol).
+- Hitungan hilang saat restart dan hanya berlaku per proses: cukup untuk satu container. Banyak replika → pindah ke Redis.
+- IP client: alamat socket. Header `CF-Connecting-IP` / `X-Forwarded-For` hanya dipercaya kalau
+  `TRUST_PROXY_HEADERS=true` (app di belakang tunnel/proxy); tanpa proxy header itu bisa dipalsukan.
+  Di Chainlit IP dibaca dari environ koneksi socket (`REMOTE_ADDR`, `HTTP_*`).
+
 ## UI & streaming
 - `run_agent()` membaca `graph.astream(stream_mode="updates")`: tool call dari node `model` → event langkah,
   `__interrupt__` → event tanya balik, pesan AI terakhir di state → jawaban final.
@@ -169,9 +195,9 @@ query + filter negara (ditulis agent)
   → (`error` {message}) → `end`. Setelah `ask`, kirim jawaban sebagai `message` dengan `thread_id` yang sama.
 
 ## Eval — `src/evals/`
-- Dataset `src/evals/dataset.jsonl`: 8 pertanyaan PRD #15 + 7 kasus tambahan (tanya balik, pertanyaan lanjutan,
+- Dataset `src/evals/dataset.jsonl` (24 kasus): 8 pertanyaan PRD #15 + 7 kasus tambahan (tanya balik, pertanyaan lanjutan,
   lokasi yang tidak ada, bahasa Indonesia, data pribadi, saran investasi, iklan Wasalt tidak boleh jadi "apartemen
-  DarGlobal"). Tiap kasus: giliran user, jawaban tombol (`ask_answer`), ekspektasi, dan jawaban acuan.
+  DarGlobal") + 9 kasus serangan `s1`–`s9` (lihat "Keamanan"). Tiap kasus: giliran user, jawaban tombol (`ask_answer`), ekspektasi, dan jawaban acuan.
 - Runner menjalankan agent lewat `run_agent()` yang sama dengan UI/API (checkpointer di memori, DB lokal, LLM asli).
 - Evaluator kode: `tool_choice` (tool yang diharapkan dipanggil; kasus menolak tidak memanggil tool data),
   `sources`, `grounded` (cek link/harga yang sama dengan middleware → metrik "0 karangan"), `behavior`
@@ -217,6 +243,8 @@ Opsional:
 - `FALLBACK_LLM_API_KEY`, `FALLBACK_LLM_BASE_URL`, `FALLBACK_LLM_MODEL` — model cadangan (OpenRouter).
 - `FASTEMBED_CACHE_PATH` — folder cache model bge-small (di image Docker: `/app/.cache/fastembed`, model
   diunduh saat build).
+- `RATE_LIMIT_PER_IP` (default `20/600`), `RATE_LIMIT_GLOBAL_PER_DAY` (default `1000`; `0` = mati),
+  `TRUST_PROXY_HEADERS` (default `false`).
 
 ## Dependency untuk target (ditambahkan 20 Nov 2026)
 | Paket | Untuk |
@@ -239,6 +267,7 @@ pandas tetap hanya di grup `dev` (notebook EDA); tools Wasalt memakai SQL.
 - `src/agent/db.py` — pool koneksi Postgres async untuk tools
 - `src/agent/llm.py` · `src/agent/prompts.py` — model utama/cadangan · system prompt
 - `src/server/chat.py` — `run_agent()` + `/api/chat` · `ui.py` — Chainlit · `runtime.py` — graph + checkpointer app
+  · `ratelimit.py` — rate limit per IP + global
 - `src/dataprep/` — scrape, bersihkan, chunk, muat ke Postgres, embed
 - `src/evals/` — dataset eval, evaluator, runner
 
@@ -247,7 +276,37 @@ pandas tetap hanya di grup `dev` (notebook EDA); tools Wasalt memakai SQL.
 Image `db`: `pgvector/pgvector:pg16` (Postgres 16 + ekstensi `vector`, sejak 20 Nov 2026): satu database untuk memori
 chat dan vektor. Pindah dari `postgres:16-alpine` memakai volume yang sama, lalu `REINDEX DATABASE` (beda collation libc).
 DB server wajib diisi data: `dataprep.load_db` lalu `dataprep.embed` (tanpa itu tools data mengembalikan error/kosong).
-HTTPS lewat Nginx/Cloudflare Tunnel di depan port 8000. **(nanti: pilih host & domain)**
+HTTPS lewat Nginx/Cloudflare Tunnel di depan port 8000.
+
+### Production (sejak 20 Nov 2026)
+- **URL publik: https://rozi.tail7d5bfc.ts.net:10000/** (UI di `/`, API di `/api/chat`, cek hidup di `/health`).
+- Host: laptop Ubuntu 24.04 milik sendiri yang nyala 24 jam (x86_64, 32 GB RAM, sleep/suspend dimatikan), folder
+  `~/projects/darglobal-chatbot`. Laptop ini juga menjalankan proyek lain, jadi port dipilih supaya tidak bentrok.
+- **HTTPS + URL publik: Tailscale Funnel** (gratis, sertifikat otomatis, tanpa domain, tanpa buka port router, IP rumah
+  tidak terlihat). Funnel hanya boleh di port 443/8443/10000; 443 sudah dipakai `tailscale serve` (tailnet saja) untuk
+  aplikasi lain, jadi app memakai **10000**: `tailscale funnel --bg --https=10000 http://127.0.0.1:8010`
+  (tersimpan di tailscaled, ikut hidup lagi setelah reboot). Matikan: `tailscale funnel --https=10000 off`.
+- `docker-compose.prod.yml` (override): Postgres tanpa port ke host (`ports: !reset []`), app hanya di
+  `127.0.0.1:${APP_PORT}` (8010). Wajib: uvicorn jalan dengan `--proxy-headers --forwarded-allow-ips *`, jadi port app
+  tidak boleh terbuka langsung ke internet (X-Forwarded-For bisa dipalsukan).
+- `.env.production` (hanya di laptop, `chmod 600`, tidak di-commit): key LLM disalin dari `.env` lokal, password
+  Postgres acak dibuat di laptop, `LANGSMITH_TRACING=false` (key LangSmith belum diisi), tanpa `TYPESAFE_API_KEY`
+  (tanpa rerank, sama seperti setup eval).
+- IP client: Funnel mengirim `X-Forwarded-For`, uvicorn sudah menuliskannya ke `request.client` → log app melihat IP
+  publik asli, rate limit per IP berjalan dengan `TRUST_PROXY_HEADERS=false`.
+- Docker & tailscaled `enabled` di systemd, container `restart: unless-stopped` → hidup lagi sendiri setelah reboot.
+- Update / deploy ulang (dari Mac):
+  ```
+  rsync -az --delete --exclude .git/ --exclude .venv/ --exclude data/raw/ --exclude .env --exclude '.env.*' \
+    --exclude CONTEXT.md --exclude notebooks/ ./ rozi@100.77.191.60:projects/darglobal-chatbot/
+  ssh rozi@100.77.191.60 'cd ~/projects/darglobal-chatbot && docker compose -f docker-compose.yml \
+    -f docker-compose.prod.yml --env-file .env.production up -d --build'
+  ```
+  Kalau data berubah: `... exec -T app python -m dataprep.load_db` lalu `... exec -T app python -m dataprep.embed`,
+  lalu `restart app` (index BM25 di memori dibangun dari DB).
+- Cek dari internet (20 Nov 2026, lewat relay Funnel publik, bukan tailnet): `/api/chat` event pertama 0,8–1,1 dtk,
+  jawaban final ±4,8 dtk (target PRD < 5 dtk untuk event pertama); UI Chainlit menjawab pertanyaan harga villa Jeddah
+  dengan statistik Wasalt + tanggal snapshot.
 
 ## Keputusan
 

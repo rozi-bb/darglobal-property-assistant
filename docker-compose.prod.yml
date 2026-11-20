@@ -1,0 +1,16 @@
+# Override production (server). Dipakai bersama docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build
+# Bedanya dengan dev:
+# - Postgres tidak di-expose ke host sama sekali (hanya bisa diakses container app).
+# - App hanya listen di 127.0.0.1; publik masuk lewat Tailscale Funnel / tunnel yang meneruskan ke port ini.
+#   (uvicorn memercayai header X-Forwarded-For, jadi port app TIDAK boleh terbuka langsung ke internet.)
+# - Secret dibaca dari .env.production (tidak di-commit).
+services:
+  db:
+    ports: !reset []
+
+  app:
+    env_file: !override
+      - .env.production
+    ports: !override
+      - "127.0.0.1:${APP_PORT:-8000}:8000"

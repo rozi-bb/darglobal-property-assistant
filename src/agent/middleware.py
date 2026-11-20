@@ -8,10 +8,13 @@ Draf yang gagal dihapus dari riwayat, jadi tidak pernah tampil ke user.
 from __future__ import annotations
 
 import json
+import logging
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from langchain.agents.middleware import (
@@ -33,13 +36,23 @@ from typing_extensions import NotRequired
 
 from agent.prompts import SYSTEM_PROMPT
 
+logger = logging.getLogger(__name__)
+
 MAX_REVISIONS = 2
 FEEDBACK_ID_PREFIX = "answer-check-"
 CONTACT_URL = "https://darglobal.co.uk/get-in-touch"
+# Jawaban hanya boleh menautkan sumber resmi. Teks blog DarGlobal & judul iklan Wasalt (ditulis pengiklan)
+# bisa berisi link luar; link itu ada di hasil tool, tapi tetap tidak boleh diteruskan ke user.
+ALLOWED_LINK_HOSTS = frozenset({"darglobal.co.uk", "www.darglobal.co.uk", "cdn.darglobal.co.uk",
+                                "wasalt.sa", "www.wasalt.sa"})
 ALWAYS_ALLOWED_URLS = {CONTACT_URL, "https://darglobal.co.uk", "https://wasalt.sa", "https://www.wasalt.sa"}
 SAFE_ANSWER = (
     "I'm sorry, I can't confirm that from the DarGlobal and Wasalt data I have. "
     f"For accurate details, please contact DarGlobal at {CONTACT_URL}."
+)
+REFUSAL_ANSWER = (
+    "Sorry, I can't share my internal instructions or configuration. "
+    "I'm happy to help with DarGlobal projects or the Saudi property market."
 )
 SOURCE_BY_TOOL = {
     "search_darglobal": "DarGlobal",
@@ -88,6 +101,11 @@ class Price:
 def normalize_url(url: str) -> str:
     """Samakan URL untuk dibandingkan (tanpa tanda baca/slash di akhir, huruf kecil)."""
     return url.rstrip(".,;:!?").rstrip("/").lower()
+
+
+def url_host(url: str) -> str:
+    """Host URL (huruf kecil, tanpa port)."""
+    return urlsplit(normalize_url(url)).hostname or ""
 
 
 def extract_urls(text: str) -> set[str]:
@@ -147,6 +165,61 @@ def price_supported(price: Price, known: set[float]) -> bool:
     return any(abs(v - k) <= max(tol, 0.01 * abs(k)) for v, tol in readings for k in known)
 
 
+# ---------- pagar kebocoran (system prompt, nama internal, key) ----------
+
+# Nama internal yang tidak pernah perlu muncul di jawaban untuk user.
+INTERNAL_MARKERS = (
+    "search_darglobal", "search_wasalt_listings", "wasalt_market_stats", "ask_user", "projects_in_country",
+    "Automatic answer check", "## Answer rules", "## Boundaries", "## Tools",
+)
+SECRET_ENV_NAMES = (
+    "LLM_API_KEY", "FALLBACK_LLM_API_KEY", "TYPESAFE_API_KEY", "LANGSMITH_API_KEY", "CHECKPOINT_DATABASE_URL",
+    "POSTGRES_PASSWORD",
+)
+KEY_LIKE_RE = re.compile(r"\b(?:sk-[A-Za-z0-9_-]{16,}|lsv2_[A-Za-z0-9_]{20,}|postgres(?:ql)?://\S+:\S+@)")
+WORD_RE = re.compile(r"[a-z0-9]+")
+LEAK_NGRAM = 8  # jumlah kata berurutan yang dianggap kutipan system prompt
+LEAK_MIN_SHARED = 3  # minimal potongan 8 kata yang sama (1-2 bisa kebetulan, mis. kalimat get-in-touch)
+
+
+def ngrams(text: str, n: int = LEAK_NGRAM) -> set[tuple[str, ...]]:
+    """Potongan n kata berurutan (huruf kecil, tanpa tanda baca, tanpa URL: link get-in-touch bukan kebocoran)."""
+    words = WORD_RE.findall(URL_RE.sub(" ", text).lower())
+    return {tuple(words[i : i + n]) for i in range(len(words) - n + 1)}
+
+
+PROMPT_NGRAMS = ngrams(SYSTEM_PROMPT)
+
+
+def find_leaks(text: str) -> list[str]:
+    """Tanda kebocoran di teks untuk user: kutipan system prompt, nama internal, nama/nilai secret."""
+    leaks: list[str] = []
+    shared = len(ngrams(text) & PROMPT_NGRAMS)
+    if shared >= LEAK_MIN_SHARED:
+        leaks.append(f"system prompt ({shared} potongan {LEAK_NGRAM} kata)")
+    lowered = text.lower()
+    leaks += [m for m in INTERNAL_MARKERS if m.lower() in lowered]
+    leaks += [name for name in SECRET_ENV_NAMES if name.lower() in lowered]
+    if KEY_LIKE_RE.search(text):
+        leaks.append("pola API key / URL database")
+    for name in SECRET_ENV_NAMES:
+        value = os.environ.get(name, "").strip()
+        if len(value) >= 8 and value in text:
+            leaks.append(f"nilai {name}")
+    return leaks
+
+
+def user_visible_text(msg: AIMessage) -> str:
+    """Teks yang akan dilihat user dari pesan AI.
+
+    Jawaban final: isinya. Pesan pemanggil tool: hanya pertanyaan/pilihan `ask_user` (isi teksnya tidak
+    ditampilkan UI; langkah lain tampil sebagai label buatan kode).
+    """
+    if not msg.tool_calls:
+        return answer_text(msg)
+    return "\n".join(json.dumps(c["args"], ensure_ascii=False) for c in msg.tool_calls if c["name"] == "ask_user")
+
+
 # ---------- cek jawaban ----------
 
 
@@ -167,8 +240,8 @@ class CheckResult:
         """Catatan perbaikan untuk model (tidak pernah ditampilkan ke user)."""
         lines = ["[Automatic answer check] Your draft answer was NOT shown to the user. Rewrite it:"]
         if self.unknown_urls:
-            lines.append(f"- These links are not in any tool result; remove them or use exact links from tool results: "
-                         f"{', '.join(self.unknown_urls)}")
+            lines.append(f"- Remove these links: they are not in any tool result or not on darglobal.co.uk / wasalt.sa. "
+                         f"Only use exact DarGlobal or Wasalt links from tool results: {', '.join(self.unknown_urls)}")
         if self.unknown_prices:
             lines.append(f"- These prices are not in any tool result; only quote prices exactly as the tools returned "
                          f"them: {', '.join(self.unknown_prices)}")
@@ -213,7 +286,10 @@ def check_answer(answer: str, messages: list[AnyMessage]) -> CheckResult:
     known_numbers = extract_numbers(evidence) | extract_numbers(user_text)
 
     result = CheckResult()
-    result.unknown_urls = sorted({u for u in URL_RE.findall(answer) if normalize_url(u) not in known_urls})
+    result.unknown_urls = sorted({
+        u for u in URL_RE.findall(answer)
+        if normalize_url(u) not in known_urls or url_host(u) not in ALLOWED_LINK_HOSTS
+    })
     result.unknown_prices = [p.text for p in extract_prices(answer) if not price_supported(p, known_numbers)]
     lowered = answer.lower()
     result.missing_sources = sorted(s for s in used_sources(current_run(messages)) if s.lower() not in lowered)
@@ -253,9 +329,16 @@ class AnswerCheckMiddleware(AgentMiddleware[AnswerCheckState]):
         """Cek draf final; gagal → hapus draf, tambah catatan, ulangi model (maks `max_revisions`)."""
         messages = state["messages"]
         draft = messages[-1] if messages else None
-        if not isinstance(draft, AIMessage) or draft.tool_calls:
+        if not isinstance(draft, AIMessage):
             return None
         cleanup = [RemoveMessage(id=m.id) for m in current_run(messages) if is_feedback(m) and m.id]
+        if leaks := find_leaks(user_visible_text(draft)):
+            # Bocor tidak direvisi (model bisa bocor lagi): langsung ganti dengan penolakan, tool call dibatalkan.
+            logger.warning("Draf diblokir, tanda kebocoran: %s", leaks)
+            remove_draft = [RemoveMessage(id=draft.id)] if draft.id else []
+            return {"messages": [*remove_draft, *cleanup, AIMessage(REFUSAL_ANSWER, id=f"refusal-{uuid4().hex}")]}
+        if draft.tool_calls:
+            return None
         result = check_answer(answer_text(draft), messages[:-1])
         if result.ok:
             return {"messages": cleanup} if cleanup else None

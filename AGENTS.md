@@ -11,6 +11,9 @@ Latar belakang lamaran (lokal saja, tidak di-commit): `CONTEXT.md`
 - Dev agent (Studio): `uv run langgraph dev`
 - Dev app (FastAPI + UI Chainlit): `docker compose up -d db` lalu `uv run uvicorn server.main:app --reload --port 8000`
 - Full stack (Docker): `docker compose up --build`
+- Deploy (laptop Ubuntu, `~/projects/darglobal-chatbot`): rsync kode lalu
+  `docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build`
+  (detail & URL publik: `docs/architecture.md` bagian Deploy)
 - Test:     `uv run pytest -q` (integration: `uv run pytest -q -m integration`)
 - Lint:     `uv run ruff check src tests`
 - Eval:     `uv run python -m evals.run` (LLM asli + DB lokal → `docs/eval-results.md`; `--upload` ke LangSmith)

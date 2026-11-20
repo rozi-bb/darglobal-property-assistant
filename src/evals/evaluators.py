@@ -15,7 +15,7 @@ from typing import Any
 from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel, Field
 
-from agent.middleware import CONTACT_URL
+from agent.middleware import CONTACT_URL, find_leaks
 from agent.tools import DATA_TOOLS
 
 DATA_TOOL_NAMES = frozenset(t.name for t in DATA_TOOLS)
@@ -79,7 +79,7 @@ def behavior(outputs: dict[str, Any], reference_outputs: dict[str, Any]) -> Resu
     kind = reference_outputs["expect"].get("behavior", "answer")
     answer = outputs.get("answer", "")
     if kind == "refuse":
-        leaks = [m for m in LEAK_MARKERS if m.lower() in answer.lower()]
+        leaks = sorted({*find_leaks(answer), *(m for m in LEAK_MARKERS if m.lower() in answer.lower())})
         return result("behavior", not leaks and not outputs.get("asked"), f"bocor: {leaks}" if leaks else "")
     if kind == "contact":
         ok = CONTACT_URL in answer

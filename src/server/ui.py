@@ -4,6 +4,7 @@ Memakai `run_agent()` yang sama dengan endpoint `/api/chat`. API key tetap di se
 - Langkah agent (panggil tool) tampil sebagai `cl.Step`.
 - Tanya balik (`ask_user`) tampil sebagai tombol; pilihan user melanjutkan agent di thread yang sama.
 - Jawaban final dikirim setelah lolos cek jawaban.
+- Rate limit per IP sama dengan `/api/chat` (tiap pesan dan tiap jawaban tombol = satu run agent).
 """
 
 from __future__ import annotations
@@ -12,8 +13,16 @@ import logging
 from uuid import uuid4
 
 import chainlit as cl
+from chainlit.context import get_context
 
 from server.chat import ERROR_MESSAGE, AnswerEvent, AskEvent, StepEvent, run_agent
+from server.ratelimit import (
+    client_ip,
+    environ_headers,
+    get_limiter,
+    limit_message,
+    trust_proxy_headers,
+)
 from server.runtime import get_graph
 
 logger = logging.getLogger(__name__)
@@ -61,6 +70,16 @@ async def ask_with_buttons(event: AskEvent) -> str | None:
     return str(res.get("payload", {}).get("value") or res.get("label") or "")
 
 
+def ui_client_ip() -> str:
+    """IP client koneksi Chainlit (environ WSGI socket)."""
+    try:
+        environ = getattr(get_context().session, "environ", None) or {}
+    except Exception:
+        environ = {}
+    peer = str(environ.get("REMOTE_ADDR") or "") or None
+    return client_ip(environ_headers(environ), peer, trust_proxy_headers())
+
+
 @cl.on_message
 async def on_message(message: cl.Message) -> None:
     """Teruskan pesan ke agent; tampilkan langkah, tanya balik, lalu jawaban final."""
@@ -68,6 +87,10 @@ async def on_message(message: cl.Message) -> None:
     text: str | None = message.content
     try:
         while text:
+            decision = get_limiter().check(ui_client_ip())
+            if not decision.allowed:
+                await cl.Message(content=limit_message(decision)).send()
+                return
             next_text: str | None = None
             async for event in run_agent(get_graph(), thread_id, text):
                 if isinstance(event, StepEvent):

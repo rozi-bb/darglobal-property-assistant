@@ -37,6 +37,12 @@ def offline_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Unit test tanpa API luar: tanpa rerank Jev, tanpa model cadangan."""
     monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
     monkeypatch.setattr("agent.graph.get_fallback_llm", lambda: None)
+    # Rate limit mati di test (test rate limit memasang limiter sendiri)
+    from server.ratelimit import RateLimiter
+
+    monkeypatch.setattr("server.ratelimit.get_limiter", lambda: RateLimiter(None, None))
+    monkeypatch.setattr("server.chat.get_limiter", lambda: RateLimiter(None, None))
+    monkeypatch.setattr("server.ui.get_limiter", lambda: RateLimiter(None, None))
 
 
 @pytest.fixture

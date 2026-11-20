@@ -37,13 +37,17 @@ Cara pakai tiap sesi: "Baca docs/roadmap.md, kerjakan task belum-tercentang beri
 - [x] Chainlit: tampilkan langkah agent, jawaban final setelah lolos cek
 - [x] Finalisasi system prompt (PRD #6, #10, #11)
 
-## Milestone 4: Eval & keamanan (nanti)
-- [x] Dataset eval (PRD #15) di LangSmith + evaluator — 15 kasus, 15/15 lolos (`docs/eval-results.md`);
+## Milestone 4: Eval & keamanan (selesai 20 Nov 2026)
+- [x] Dataset eval (PRD #15) di LangSmith + evaluator — 24 kasus (termasuk 9 serangan), 24/24 lolos (`docs/eval-results.md`);
       `--upload` ke LangSmith belum dites (`LANGSMITH_API_KEY` kosong)
-- [ ] Tes prompt injection & kebocoran system prompt
-- [ ] Rate limit sederhana per IP (batasi biaya LLM)
+- [x] Tes prompt injection & kebocoran system prompt — pagar kebocoran + allowlist domain link di middleware,
+      `tests/unit_tests/test_security.py` (15 test), eval `s1`–`s9` (model menolak sendiri, pagar tidak terpicu)
+- [x] Rate limit sederhana per IP (batasi biaya LLM) — 20 pesan/10 menit per IP + 1000/hari global, API (429) & UI;
+      `tests/unit_tests/test_ratelimit.py`
 
-## Milestone 5: Deploy (nanti)
-- [ ] Pilih host + domain + HTTPS
-- [ ] `.env` production terpisah
-- [ ] Deploy `docker compose up -d --build`, cek URL publik
+## Milestone 5: Deploy (selesai 20 Nov 2026)
+- [x] Pilih host + domain + HTTPS — laptop Ubuntu 24 jam + Tailscale Funnel (tanpa domain sendiri):
+      https://rozi.tail7d5bfc.ts.net:10000/
+- [x] `.env` production terpisah — `.env.production` di laptop (tidak di-commit) + `docker-compose.prod.yml`
+- [x] Deploy `docker compose up -d --build`, cek URL publik — data dimuat + embed di container; event pertama ±1 dtk
+      dari internet
