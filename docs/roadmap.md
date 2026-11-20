@@ -23,19 +23,19 @@ Cara pakai tiap sesi: "Baca docs/roadmap.md, kerjakan task belum-tercentang beri
 - [x] Dockerfile + docker-compose (app + db)
 - [x] Tes multi-turn dengan key asli (API + UI)
 
-## Milestone 3: Data & tools (nanti) — desain di `architecture.md` bagian Target
+## Milestone 3: Data & tools (selesai 20 Nov 2026) — desain di `architecture.md`
 - [x] Infra (izin dulu): dependency baru, image db → `pgvector/pgvector:pg16`, env baru di `.env.example`
 - [x] Bersihkan data (outlier harga sewa, `rent_freq` objek, title kosong, sisa daftar negara)
 - [x] Ambil ulang DarGlobal dari JSON CMS (Wayback) + pipeline `src/dataprep/` + muat ke Postgres
-- [ ] Tool `search_wasalt_listings` + unit test
-- [ ] Tool `wasalt_market_stats` + unit test
-- [ ] Index hybrid DarGlobal: chunk + embed bge-small ke pgvector + index BM25
-- [ ] Tool `search_darglobal` (RRF + rerank Jev + fallback RRF) + unit test
-- [ ] Tool `ask_user` (tanya balik lewat `interrupt` + tombol Chainlit) + unit test
-- [ ] Ganti graph ke `create_agent` + middleware bawaan (PII, ringkasan, prompt dinamis, retry, fallback, batas)
-- [ ] Middleware cek jawaban (link + harga + sumber, maks 2 revisi) + unit test
-- [ ] Chainlit: tampilkan langkah agent, jawaban final setelah lolos cek
-- [ ] Finalisasi system prompt (PRD #6, #10, #11)
+- [x] Tool `search_wasalt_listings` + unit test
+- [x] Tool `wasalt_market_stats` + unit test
+- [x] Index hybrid DarGlobal: chunk + embed bge-small ke pgvector + index BM25
+- [x] Tool `search_darglobal` (RRF + rerank Jev + fallback RRF) + unit test
+- [x] Tool `ask_user` (tanya balik lewat `interrupt` + tombol Chainlit) + unit test
+- [x] Ganti graph ke `create_agent` + middleware bawaan (PII, ringkasan, prompt dinamis, retry, fallback, batas)
+- [x] Middleware cek jawaban (link + harga + sumber, maks 2 revisi) + unit test
+- [x] Chainlit: tampilkan langkah agent, jawaban final setelah lolos cek
+- [x] Finalisasi system prompt (PRD #6, #10, #11)
 
 ## Milestone 4: Eval & keamanan (nanti)
 - [ ] Dataset eval (PRD #15) di LangSmith + evaluator

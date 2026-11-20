@@ -1,8 +1,4 @@
-"""New LangGraph Agent.
+"""Agent DarGlobal Property Assistant (LangGraph, `create_agent` + middleware).
 
-This module defines a custom graph.
+`agent.graph.graph` dipakai `langgraph dev`; backend memakai `agent.graph.build_graph`.
 """
-
-from agent.graph import graph
-
-__all__ = ["graph"]

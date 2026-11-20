@@ -22,10 +22,10 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
-from agent.graph import build_graph
+from agent import db, retrieval
 from server.chat import router as chat_router
 from server.config import get_settings
-from server.runtime import set_graph
+from server.runtime import set_checkpointer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -39,10 +39,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
 
     if not settings.database_url:
-        logger.warning("CHECKPOINT_DATABASE_URL kosong: memori chat disimpan di RAM (hilang saat restart).")
-        set_graph(build_graph(checkpointer=InMemorySaver()))
+        logger.warning("CHECKPOINT_DATABASE_URL kosong: memori chat di RAM, data properti tidak tersedia.")
+        set_checkpointer(InMemorySaver())
         yield
-        set_graph(None)
+        set_checkpointer(None)
         return
 
     async with AsyncConnectionPool(
@@ -53,10 +53,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     ) as pool:
         checkpointer = AsyncPostgresSaver(pool)  # type: ignore[arg-type]
         await checkpointer.setup()  # buat tabel checkpointer kalau belum ada
-        set_graph(build_graph(checkpointer=checkpointer))
+        set_checkpointer(checkpointer)
         logger.info("Checkpointer Postgres siap.")
+        try:
+            await retrieval.warm_up()  # model embedding + index BM25, supaya request pertama tidak lambat
+        except Exception:
+            logger.exception("Warm-up pencarian DarGlobal gagal (cek tabel darglobal_chunks / dataprep.embed).")
         yield
-        set_graph(None)
+        set_checkpointer(None)
+        await db.close_pool()
 
 
 app = FastAPI(title=get_settings().app_name, lifespan=lifespan)

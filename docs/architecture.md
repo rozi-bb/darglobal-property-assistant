@@ -1,7 +1,7 @@
 # Arsitektur
 
-> Status: desain target disetujui 20 Nov 2026. Kode masih baseline (`START → call_model → END`).
-> Bagian **Target** dikerjakan bertahap lewat Milestone 3 di `roadmap.md`.
+> Status: desain disetujui 20 Nov 2026, diimplementasikan di Milestone 3 (20 Nov 2026).
+> Baseline lama (`START → call_model → END`, `nodes.py`, `state.py`) sudah diganti `create_agent`.
 
 ## Ringkasan
 Satu **agent ReAct** (DeepSeek Flash) yang memilih sendiri tool yang dipanggil:
@@ -34,23 +34,13 @@ Browser ──HTTPS──▶ Nginx/Tunnel ──▶ app (FastAPI, port 8000)
 ```
 
 - **UI**: Chainlit di-mount ke FastAPI (`chainlit.utils.mount_chainlit`), satu proses, satu port.
-  Handler Chainlit memanggil fungsi `stream_reply()` yang sama dengan endpoint `/api/chat`.
+  Handler Chainlit memanggil fungsi `run_agent()` (`server/chat.py`) yang sama dengan endpoint `/api/chat`.
 - **API key** (DeepSeek, OpenRouter, TypeSafe, LangSmith) hanya di environment backend, tidak pernah ke browser.
 - **Tanpa login/paket/limit/pembayaran** (langkah 12, 14, 15 di-skip; lihat PRD #13). Tidak ada JWT.
 
 ## Agent (graph)
 
-### Sekarang (baseline, langkah 8)
-```
-START ──▶ call_model ──▶ END
-```
-| Node | Jenis | Tugas |
-|---|---|---|
-| `call_model` | LLM | System prompt + riwayat pesan → jawaban |
-
-State (`src/agent/state.py`): `messages: Annotated[list[AnyMessage], add_messages]`.
-
-### Target: agent ReAct (`create_agent` + middleware)
+### Agent ReAct (`create_agent` + middleware)
 ```
 pesan user
    │
@@ -77,7 +67,7 @@ Agent memutuskan sendiri, tanpa classifier/router di depan:
 ### Middleware
 | # | Middleware | Jenis | Tugas |
 |---|---|---|---|
-| 1 | `PIIMiddleware` (`email`, `credit_card`, `phone_number` via regex) | bawaan | Samarkan data pribadi di pesan user sebelum dikirim ke LLM |
+| 1 | `PIIMiddleware` (`email` redact, `credit_card` mask, `phone_number` mask lewat regex sendiri: tipe telepon tidak ada bawaan) | bawaan | Samarkan data pribadi di pesan user sebelum dikirim ke LLM |
 | 2 | `SummarizationMiddleware` | bawaan | Ringkas riwayat lama kalau chat sudah panjang (hemat token) |
 | 3 | `@dynamic_prompt` | bawaan (decorator) | Sisipkan tanggal hari ini + instruksi "jawab dalam bahasa user" ke system prompt |
 | 4 | `ModelCallLimitMiddleware` | bawaan | Batas panggilan model per run (termasuk revisi) |
@@ -87,17 +77,23 @@ Agent memutuskan sendiri, tanpa classifier/router di depan:
 | 8 | `ToolRetryMiddleware` | bawaan | Retry tool yang gagal sementara (mis. timeout TypeSafe/DB) |
 | 9 | `AnswerCheckMiddleware` | custom | Cek draf jawaban (lihat di bawah) |
 
-Urutan di atas adalah urutan awal; urutan eksekusi hook dicek ulang saat implementasi.
+Urutan di atas = urutan di `build_middleware()` (`src/agent/graph.py`). `before_model` jalan dari atas ke bawah,
+`after_model` dari bawah ke atas (cek jawaban jalan pertama setelah model), `wrap_model_call` yang pertama paling luar
+(fallback membungkus retry: model utama di-retry dulu, baru pindah ke cadangan). Batas model = 6 + 1 + 2 revisi.
+`ModelFallbackMiddleware` hanya dipasang kalau ketiga env `FALLBACK_LLM_*` terisi.
 Tidak dipakai: `HumanInTheLoopMiddleware` (untuk menyetujui aksi tool, sedangkan tools kita hanya membaca data),
 `LLMToolSelectorMiddleware` (tool cuma 4), context editing, to-do list, shell/file search, deepagents.
 
 ### Middleware cek jawaban (custom)
 - Hook `after_model` dengan `can_jump_to=["model"]`. Hanya jalan kalau pesan terakhir adalah AI tanpa `tool_calls` (draf final).
 - Aturan, semuanya kode (tanpa LLM):
-  1. Setiap URL di jawaban harus ada di hasil tool pada run ini.
-  2. Setiap angka harga (SAR, AED, USD, …) harus ada di hasil tool (setelah normalisasi format angka).
-  3. Sumber disebut: hasil `search_darglobal` dipakai → sebut "DarGlobal"; hasil tool Wasalt dipakai → sebut "Wasalt".
-- Gagal dan revisi < 2 → tambahkan catatan perbaikan, `jump_to: "model"`. Draf yang gagal tidak ditampilkan ke user.
+  1. Setiap URL di jawaban harus ada di hasil tool di thread ini (link get-in-touch dan halaman utama
+     DarGlobal/Wasalt selalu boleh).
+  2. Setiap angka harga (SAR, AED, USD, …, termasuk "k"/"million") harus cocok dengan angka di hasil tool atau pesan
+     user (toleransi pembulatan / 1%).
+  3. Sumber disebut: tool DarGlobal/Wasalt yang hasilnya `status: ok` di run ini → nama sumbernya wajib muncul.
+- Gagal dan revisi < 2 → draf dihapus dari state, ditambah pesan catatan perbaikan (id `answer-check-…`),
+  `jump_to: "model"`. Catatan dihapus lagi setelah lolos. Draf yang gagal tidak ditampilkan ke user.
 - Gagal 2x → jawaban aman: bilang belum bisa memastikan dari data + arahkan ke https://darglobal.co.uk/get-in-touch.
 - Jawaban tanpa link/angka (sapaan, penolakan, tanya balik) otomatis lolos.
 - LLM judge sengaja belum dipakai (hemat 1 panggilan LLM per pertanyaan). Ditambahkan kalau eval menunjukkan
@@ -107,9 +103,9 @@ Tidak dipakai: `HumanInTheLoopMiddleware` (untuk menyetujui aksi tool, sedangkan
 
 | Tool | Jenis | Input utama | Output |
 |---|---|---|---|
-| `search_darglobal` | RAG, hybrid search | `query` (bahasa Inggris, berdiri sendiri), `country?` | ≤ 4 potongan teks + URL + nama proyek, atau `not_found` |
-| `search_wasalt_listings` | query tabel | `city`, `property_type`, `purpose`, `min_price?`, `max_price?`, `bedrooms?`, `limit` (≤ 10) | daftar iklan + URL |
-| `wasalt_market_stats` | query tabel | `city`, `property_type?`, `purpose` | `n`, median, p25–p75, median harga/m² |
+| `search_darglobal` | RAG, hybrid search | `query` (bahasa Inggris, berdiri sendiri), `country?` | ≤ 4 potongan teks + URL + tanggal snapshot, atau `not_found`; dengan `country` juga daftar lengkap proyek di negara itu (`projects_in_country`) |
+| `search_wasalt_listings` | query tabel | `city`, `purpose`, `property_type?`, `min_price?`, `max_price?`, `bedrooms?`, `district?`, `sort`, `limit` (≤ 10) | daftar iklan + URL + `total_matches` |
+| `wasalt_market_stats` | query tabel | `city`, `purpose`, `property_type?`, `bedrooms?` | `n`, median, p25–p75, min–max, median harga/m² |
 | `ask_user` | interaksi (tanya balik) | `question`, `options` | jawaban user (lewat `interrupt`) |
 
 - Semua input divalidasi Pydantic (kota/tipe/purpose = enum dari data). Docs DeepSeek mengingatkan argumen tool
@@ -139,26 +135,37 @@ query + filter negara (ditulis agent)
 - Agent menulis query lengkap dan berbahasa Inggris saat memanggil tool (mis. "cicilannya gimana?" →
   "Trump Tower Jeddah payment plan"), jadi node `rewrite_query` terpisah tidak perlu (hemat 1 panggilan LLM).
   Halaman DarGlobal berbahasa Inggris dan bge-small adalah model bahasa Inggris.
-- Rerank: satu request Jev (TypeSafe), satu pertanyaan Noul per passage ("passage ini relevan dengan query?").
-- Jev error/timeout → pakai top 4 dari urutan RRF (tanpa rerank), dicatat di trace. Pencarian tetap jalan.
+- Dense: `embedding <=> query` (cosine) di pgvector, 50 kandidat. Sparse: BM25Okapi di memori, dibangun dari
+  tabel `darglobal_chunks` saat app start (`retrieval.warm_up()`, ±2.700 chunk, < 1 detik). RRF k=60, lalu chunk
+  dengan isi sama dibuang (seksi yang dipakai bersama beberapa halaman).
+- Filter negara: halaman proyek memakai kolom `country` di `darglobal_projects`; blog/press memakai nama negara/kota di teks.
+- Rerank: satu request Jev (TypeSafe) per pasangan (query, passage), paralel maks 8, timeout 15 dtk.
+- Tanpa `TYPESAFE_API_KEY` atau Jev error/timeout → top 4 dari urutan RRF (`reranked: false`). Pencarian tetap jalan.
 - `not_found` bukan jalan buntu: agent bisa mencoba query lain, mencari di Wasalt, atau memanggil `ask_user`.
 - Angka top 20 / top 4 / skor 0.5 adalah nilai awal, disetel lewat eval.
 
 ### Tools Wasalt
-- Tools query SQL langsung ke tabel `wasalt_listings` (1.172 baris): filter = `WHERE`,
-  statistik = `percentile_cont`. Tanpa pandas di app.
-- `wasalt_market_stats` membuang outlier (IQR) dan selalu melaporkan jumlah sampel `n`; `n < 5` ditandai "sampel kecil".
+- Tools query SQL langsung ke tabel `wasalt_listings` (1.172 baris): filter = `WHERE` (parameter, tanpa string SQL
+  dari LLM). Statistik dihitung di Python (bukan `percentile_cont`) karena outlier dibuang dulu: IQR pada log harga
+  (minimal 4 data), lalu persentil interpolasi linear (sama dengan `percentile_cont`). Tanpa pandas di app.
+- `wasalt_market_stats` selalu melaporkan jumlah sampel `n` dan jumlah outlier dibuang; `n < 5` ditandai "sampel kecil".
+- Harga sewa dibandingkan per tahun (`rent_yearly_sar`). Hasil membawa catatan tanggal snapshot (20 Nov 2026).
 - Wasalt tidak pakai RAG: pertanyaan harga/jumlah butuh angka pasti dari filter dan hitungan,
   bukan potongan teks yang "mirip".
 
 ### `ask_user` (tanya balik)
 - Tool memanggil `interrupt()` LangGraph: run berhenti, state tersimpan di checkpointer.
-- Chainlit menampilkan pertanyaan + tombol pilihan; jawaban user dikirim balik dengan `Command(resume=...)`, agent lanjut.
-- `/api/chat` mengirim event SSE khusus berisi pertanyaan + pilihan; client melanjutkan dengan jawaban user.
+- Chainlit menampilkan pertanyaan + tombol pilihan (`cl.AskActionMessage`, tunggu maks 10 menit); jawaban user
+  dikirim balik dengan `Command(resume=...)`, agent lanjut.
+- Kalau thread sedang menunggu jawaban, pesan user berikutnya (di UI atau `/api/chat`) dianggap jawabannya.
 
 ## UI & streaming
-- Selama run, Chainlit menampilkan langkah agent (`cl.Step`), mis. "Mencari di DarGlobal: …".
-- Jawaban final dikirim setelah lolos cek jawaban, jadi draf yang gagal tidak pernah tampil.
+- `run_agent()` membaca `graph.astream(stream_mode="updates")`: tool call dari node `model` → event langkah,
+  `__interrupt__` → event tanya balik, pesan AI terakhir di state → jawaban final.
+- Chainlit menampilkan langkah agent (`cl.Step`), mis. "Wasalt listings: Riyadh · Apartment · rent".
+- Jawaban final dikirim utuh setelah lolos cek jawaban (tidak di-stream per token), jadi draf yang gagal tidak pernah tampil.
+- `/api/chat` (SSE): `start` {thread_id} → `step` {tool, label, args}… → `answer` {text} atau `ask` {question, options}
+  → (`error` {message}) → `end`. Setelah `ask`, kirim jawaban sebagai `message` dengan `thread_id` yang sama.
 
 ## Pipeline data (offline) — `src/dataprep/`
 Prinsip: ambil **JSON CMS bawaan halaman** (`__NEXT_DATA__`, Strapi), bukan teks layar → tanpa menu/teks dobel.
@@ -176,21 +183,26 @@ Tidak ada bypass CAPTCHA/anti-bot; patuhi robots.txt & llms.txt Wasalt; kontak p
   - `uv run python -m dataprep.darglobal` — scrape arsip (bisa dilanjutkan; ±45 menit dari nol)
   - `uv run python -m dataprep.build` — bersihkan → `data/processed/`
   - `uv run python -m dataprep.load_db` — muat ke Postgres (`CHECKPOINT_DATABASE_URL`)
-- Berikutnya (task RAG): embed `darglobal_chunks` (bge-small) ke pgvector, gabung dengan BM25 di memori (RRF).
+  - `uv run python -m dataprep.embed` — embed `darglobal_chunks` (bge-small, lokal) ke kolom `embedding vector(384)`
+    (±2 menit). Wajib dijalankan lagi setelah `load_db`, karena load ulang mengosongkan tabel chunk.
 
 ## Memory
 - Checkpointer `AsyncPostgresSaver` (`langgraph-checkpoint-postgres`), tabel dibuat otomatis lewat `.setup()` saat start.
 - `thread_id` = id sesi chat Chainlit (UI) atau dikirim client (`/api/chat`).
 - Riwayat panjang diringkas `SummarizationMiddleware`; `ask_user` butuh checkpointer karena memakai `interrupt`.
-- Di `langgraph dev`, persistence diurus server dev-nya sendiri (graph di-export tanpa checkpointer).
+- Di `langgraph dev`, persistence diurus server dev-nya sendiri (graph di-export tanpa checkpointer). Variabel
+  `graph` di `agent/graph.py` dibuat saat pertama diakses (module `__getattr__`), jadi import modul tidak butuh API key.
+- App: checkpointer Postgres kalau `CHECKPOINT_DATABASE_URL` diisi, selain itu `InMemorySaver` (tools data butuh DB).
 
 ## Konfigurasi (env)
 Sudah ada: `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`, `CHECKPOINT_DATABASE_URL`,
 `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, (`LANGSMITH_ENDPOINT`).
 
-Untuk target (sudah ada di `.env.example`, belum dipakai kode):
-- `TYPESAFE_API_KEY` — rerank Jev.
-- `FALLBACK_LLM_API_KEY`, `FALLBACK_LLM_BASE_URL`, `FALLBACK_LLM_MODEL` — model cadangan (OpenRouter), opsional.
+Opsional:
+- `TYPESAFE_API_KEY` — rerank Jev (kosong → urutan RRF).
+- `FALLBACK_LLM_API_KEY`, `FALLBACK_LLM_BASE_URL`, `FALLBACK_LLM_MODEL` — model cadangan (OpenRouter).
+- `FASTEMBED_CACHE_PATH` — folder cache model bge-small (di image Docker: `/app/.cache/fastembed`, model
+  diunduh saat build).
 
 ## Dependency untuk target (ditambahkan 20 Nov 2026)
 | Paket | Untuk |
@@ -203,18 +215,22 @@ Untuk target (sudah ada di `.env.example`, belum dipakai kode):
 
 pandas tetap hanya di grup `dev` (notebook EDA); tools Wasalt memakai SQL.
 
-## Rencana struktur file
-- `src/agent/graph.py` — `create_agent(...)` + daftar middleware (menggantikan `call_model`)
-- `src/agent/tools.py` — 4 tools
+## Struktur file
+- `src/agent/graph.py` — `create_agent(...)` + daftar middleware
+- `src/agent/tools.py` — `search_darglobal`, `ask_user` (+ daftar 4 tools)
+- `src/agent/wasalt.py` — tools Wasalt (query SQL + statistik)
 - `src/agent/retrieval.py` — hybrid search (pgvector, BM25, RRF, rerank Jev)
 - `src/agent/middleware.py` — prompt dinamis + cek jawaban
-- `src/agent/prompts.py` — system prompt
-- `src/dataprep/` — scrape, bersihkan, chunk, muat ke Postgres (sudah ada); embed menyusul
+- `src/agent/db.py` — pool koneksi Postgres async untuk tools
+- `src/agent/llm.py` · `src/agent/prompts.py` — model utama/cadangan · system prompt
+- `src/server/chat.py` — `run_agent()` + `/api/chat` · `ui.py` — Chainlit · `runtime.py` — graph + checkpointer app
+- `src/dataprep/` — scrape, bersihkan, chunk, muat ke Postgres, embed
 
 ## Deploy
 `docker compose up -d --build` di server: service `app` + `db` (volume `pgdata`), `restart: unless-stopped`.
 Image `db`: `pgvector/pgvector:pg16` (Postgres 16 + ekstensi `vector`, sejak 20 Nov 2026): satu database untuk memori
 chat dan vektor. Pindah dari `postgres:16-alpine` memakai volume yang sama, lalu `REINDEX DATABASE` (beda collation libc).
+DB server wajib diisi data: `dataprep.load_db` lalu `dataprep.embed` (tanpa itu tools data mengembalikan error/kosong).
 HTTPS lewat Nginx/Cloudflare Tunnel di depan port 8000. **(nanti: pilih host & domain)**
 
 ## Keputusan

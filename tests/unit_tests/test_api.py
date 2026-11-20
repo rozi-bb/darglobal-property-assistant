@@ -28,7 +28,7 @@ def test_root_redirects_to_ui(no_database) -> None:
     assert res.headers["location"] == "/chat"
 
 
-def test_chat_streams_tokens(no_database, fake_llm) -> None:
+def test_chat_sends_final_answer(no_database, fake_llm) -> None:
     fake_llm("Trump Tower Jeddah is a DarGlobal project")
     with TestClient(app) as client:
         res = client.post("/api/chat", json={"message": "What is Trump Tower Jeddah?"})
@@ -38,8 +38,9 @@ def test_chat_streams_tokens(no_database, fake_llm) -> None:
     events = _events(res.text)
     kinds = [e for e, _ in events]
     assert kinds[0] == "start" and kinds[-1] == "end"
-    assert kinds.count("token") >= 2  # benar-benar di-stream, bukan satu blok
+    assert kinds.count("answer") == 1  # jawaban final dikirim utuh setelah lolos cek
     assert "error" not in kinds
+    assert dict(events)["answer"]["text"]
     assert events[0][1]["thread_id"]
 
 
@@ -62,7 +63,7 @@ def test_chat_llm_error_is_friendly(no_database, monkeypatch) -> None:
     def boom():
         raise RuntimeError("LLM_API_KEY belum diisi")
 
-    monkeypatch.setattr("agent.nodes.get_llm", boom)
+    monkeypatch.setattr("agent.graph.get_llm", boom)
     with TestClient(app) as client:
         res = client.post("/api/chat", json={"message": "hi"})
     kinds = [e for e, _ in _events(res.text)]
@@ -77,3 +78,14 @@ def test_chainlit_ui_settings_load(no_database, monkeypatch) -> None:
         res = client.get("/chat/project/settings?language=en-US")
     assert res.status_code == 200
     assert res.json()["ui"]["name"] == "DarGlobal Property Assistant"
+
+
+def test_chat_ask_event_then_resume(no_database, fake_llm, tool_call) -> None:
+    fake_llm(tool_call("ask_user", {"question": "Which city?", "options": ["Riyadh", "Jeddah"]}),
+             "Thanks, noted: Riyadh.")
+    with TestClient(app) as client:
+        first = _events(client.post("/api/chat", json={"message": "villas?", "thread_id": "q1"}).text)
+        second = _events(client.post("/api/chat", json={"message": "Riyadh", "thread_id": "q1"}).text)
+    assert ("ask", {"question": "Which city?", "options": ["Riyadh", "Jeddah"]}) in first
+    assert "answer" not in dict(first)
+    assert dict(second)["answer"]["text"]

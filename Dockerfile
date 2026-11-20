@@ -22,6 +22,10 @@ COPY .chainlit/config.toml ./.chainlit/config.toml
 COPY chainlit.md ./
 RUN uv sync --frozen --no-dev
 
+# 3) Model embedding bge-small (±130 MB) di-download saat build, bukan tiap container start
+ENV FASTEMBED_CACHE_PATH=/app/.cache/fastembed
+RUN python -c "from agent.retrieval import get_embedder; get_embedder()"
+
 # Jalan sebagai user biasa; Chainlit perlu menulis ke /app/.chainlit & /app/.files
 RUN useradd --create-home --uid 1000 app && chown -R app:app /app
 USER app

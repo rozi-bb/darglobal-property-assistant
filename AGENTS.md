@@ -13,11 +13,12 @@ Latar belakang lamaran (lokal saja, tidak di-commit): `CONTEXT.md`
 - Full stack (Docker): `docker compose up --build`
 - Test:     `uv run pytest -q` (integration: `uv run pytest -q -m integration`)
 - Lint:     `uv run ruff check .`
-- Data:     `uv run python -m dataprep.build` lalu `uv run python -m dataprep.load_db` (scrape ulang DarGlobal: `uv run python -m dataprep.darglobal`)
+- Data:     `uv run python -m dataprep.build` lalu `uv run python -m dataprep.load_db` lalu `uv run python -m dataprep.embed` (scrape ulang DarGlobal: `uv run python -m dataprep.darglobal`)
 
 ## Struktur
-- Agent: State `src/agent/state.py` · Node `src/agent/nodes.py` · Tools `src/agent/tools.py`
-  · LLM `src/agent/llm.py` · Prompt `src/agent/prompts.py` · Graph `src/agent/graph.py`
+- Agent: Graph `src/agent/graph.py` (`create_agent`) · Middleware `src/agent/middleware.py`
+  · Tools `src/agent/tools.py` + `wasalt.py` · Retrieval `src/agent/retrieval.py` · DB `src/agent/db.py`
+  · LLM `src/agent/llm.py` · Prompt `src/agent/prompts.py`
 - Backend: `src/server/main.py` (FastAPI) · `config.py` · `chat.py` (endpoint chat) · `ui.py` (Chainlit)
 - Data: pipeline `src/dataprep/` · mentah `data/raw/` (tidak di-commit) · bersih `data/processed/` · Test: `tests/`
 - Env DB memori: `CHECKPOINT_DATABASE_URL` (JANGAN pakai nama `DATABASE_URL`: Chainlit akan menyalakan data layer-nya sendiri)

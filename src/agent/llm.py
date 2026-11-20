@@ -31,5 +31,16 @@ def get_llm() -> BaseChatModel:
         api_key=api_key,
         temperature=0.2,
         timeout=60,
-        max_retries=2,
+        max_retries=0,  # retry + backoff diurus ModelRetryMiddleware
     )
+
+
+@lru_cache(maxsize=1)
+def get_fallback_llm() -> BaseChatModel | None:
+    """Model cadangan (misal OpenRouter) kalau `FALLBACK_LLM_*` diisi semua; selain itu None."""
+    api_key = os.environ.get("FALLBACK_LLM_API_KEY", "").strip()
+    base_url = os.environ.get("FALLBACK_LLM_BASE_URL", "").strip()
+    model = os.environ.get("FALLBACK_LLM_MODEL", "").strip()
+    if not (api_key and base_url and model):
+        return None
+    return ChatOpenAI(model=model, base_url=base_url, api_key=api_key, temperature=0.2, timeout=60, max_retries=0)
