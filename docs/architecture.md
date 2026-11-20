@@ -298,8 +298,8 @@ HTTPS lewat Nginx/Cloudflare Tunnel di depan port 8000.
 - Update / deploy ulang (dari Mac):
   ```
   rsync -az --delete --exclude .git/ --exclude .venv/ --exclude data/raw/ --exclude .env --exclude '.env.*' \
-    --exclude CONTEXT.md --exclude notebooks/ ./ rozi@100.77.191.60:projects/darglobal-chatbot/
-  ssh rozi@100.77.191.60 'cd ~/projects/darglobal-chatbot && docker compose -f docker-compose.yml \
+    --exclude CONTEXT.md --exclude notebooks/ ./ <user>@<host-tailscale>:projects/darglobal-chatbot/
+  ssh <user>@<host-tailscale> 'cd ~/projects/darglobal-chatbot && docker compose -f docker-compose.yml \
     -f docker-compose.prod.yml --env-file .env.production up -d --build'
   ```
   Kalau data berubah: `... exec -T app python -m dataprep.load_db` lalu `... exec -T app python -m dataprep.embed`,
