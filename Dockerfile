@@ -20,6 +20,7 @@ COPY src ./src
 COPY data ./data
 COPY .chainlit/config.toml ./.chainlit/config.toml
 COPY chainlit.md ./
+COPY public ./public
 RUN uv sync --frozen --no-dev
 
 # 3) Model embedding bge-small (±130 MB) di-download saat build, bukan tiap container start
