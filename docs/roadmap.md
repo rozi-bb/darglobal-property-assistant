@@ -24,7 +24,7 @@ Cara pakai tiap sesi: "Baca docs/roadmap.md, kerjakan task belum-tercentang beri
 - [x] Tes multi-turn dengan key asli (API + UI)
 
 ## Milestone 3: Data & tools (nanti) — desain di `architecture.md` bagian Target
-- [ ] Infra (izin dulu): dependency baru, image db → `pgvector/pgvector:pg16`, env baru di `.env.example`
+- [x] Infra (izin dulu): dependency baru, image db → `pgvector/pgvector:pg16`, env baru di `.env.example`
 - [x] Bersihkan data (outlier harga sewa, `rent_freq` objek, title kosong, sisa daftar negara)
 - [x] Ambil ulang DarGlobal dari JSON CMS (Wayback) + pipeline `src/dataprep/` + muat ke Postgres
 - [ ] Tool `search_wasalt_listings` + unit test

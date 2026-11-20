@@ -29,7 +29,7 @@ Browser ──HTTPS──▶ Nginx/Tunnel ──▶ app (FastAPI, port 8000)
                                      └── agent (create_agent)
                                           ├── model ──▶ DeepSeek API (cadangan: OpenRouter)
                                           ├── search_darglobal ──▶ pgvector + BM25 (memori) + TypeSafe API (rerank Jev)
-                                          ├── tools Wasalt ──▶ tabel bersih (pandas, memori)
+                                          ├── tools Wasalt ──▶ tabel wasalt_listings (query SQL)
                                           └── checkpointer ──▶ db (Postgres 16 + pgvector)
 ```
 
@@ -145,7 +145,8 @@ query + filter negara (ditulis agent)
 - Angka top 20 / top 4 / skor 0.5 adalah nilai awal, disetel lewat eval.
 
 ### Tools Wasalt
-- Tabel bersih dibaca pandas saat app start (1.172 baris, cukup di memori).
+- Tools query SQL langsung ke tabel `wasalt_listings` (1.172 baris): filter = `WHERE`,
+  statistik = `percentile_cont`. Tanpa pandas di app.
 - `wasalt_market_stats` membuang outlier (IQR) dan selalu melaporkan jumlah sampel `n`; `n < 5` ditandai "sampel kecil".
 - Wasalt tidak pakai RAG: pertanyaan harga/jumlah butuh angka pasti dari filter dan hitungan,
   bukan potongan teks yang "mirip".
@@ -170,12 +171,12 @@ Tidak ada bypass CAPTCHA/anti-bot; patuhi robots.txt & llms.txt Wasalt; kontak p
 
 - Ringkasan jumlah per sumber/jenis: `data/processed/manifest.json`. Data mentah (`data/raw/`) tidak di-commit.
 - Tabel Postgres (DB yang sama dengan memori chat): `darglobal_projects`, `darglobal_chunks` (kolom `tsv` + index GIN
-  untuk full-text/keyword search), `wasalt_listings`. Dimuat ulang (idempoten) dengan `dataprep.load_db`.
+  sebagai cadangan; keyword search memakai BM25 di memori), `wasalt_listings`. Dimuat ulang (idempoten) dengan `dataprep.load_db`.
 - Perintah:
   - `uv run python -m dataprep.darglobal` — scrape arsip (bisa dilanjutkan; ±45 menit dari nol)
   - `uv run python -m dataprep.build` — bersihkan → `data/processed/`
   - `uv run python -m dataprep.load_db` — muat ke Postgres (`CHECKPOINT_DATABASE_URL`)
-- Berikutnya (task RAG): embed `darglobal_chunks` (bge-small) ke pgvector, gabung dengan keyword search (RRF).
+- Berikutnya (task RAG): embed `darglobal_chunks` (bge-small) ke pgvector, gabung dengan BM25 di memori (RRF).
 
 ## Memory
 - Checkpointer `AsyncPostgresSaver` (`langgraph-checkpoint-postgres`), tabel dibuat otomatis lewat `.setup()` saat start.
@@ -187,19 +188,20 @@ Tidak ada bypass CAPTCHA/anti-bot; patuhi robots.txt & llms.txt Wasalt; kontak p
 Sudah ada: `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`, `CHECKPOINT_DATABASE_URL`,
 `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, (`LANGSMITH_ENDPOINT`).
 
-Rencana (belum ditambahkan ke `.env.example`):
+Untuk target (sudah ada di `.env.example`, belum dipakai kode):
 - `TYPESAFE_API_KEY` — rerank Jev.
 - `FALLBACK_LLM_API_KEY`, `FALLBACK_LLM_BASE_URL`, `FALLBACK_LLM_MODEL` — model cadangan (OpenRouter), opsional.
 
-## Dependency baru (rencana, minta izin dulu)
+## Dependency untuk target (ditambahkan 20 Nov 2026)
 | Paket | Untuk |
 |---|---|
-| `langchain` (v1) | `create_agent` + middleware (sekarang baru ada `langchain-core` dan `langchain-openai`) |
+| `langchain` (v1) | `create_agent` + middleware (sebelumnya baru ada `langchain-core` dan `langchain-openai`) |
 | `fastembed` | embedding bge-small lokal, tanpa API |
 | `pgvector` | tipe `vector` di psycopg |
 | `rank-bm25` | keyword search BM25 |
 | `typesafe-sdk` | rerank Jev |
-| `pandas` | tools Wasalt (pindah dari grup `dev` ke dependency utama) |
+
+pandas tetap hanya di grup `dev` (notebook EDA); tools Wasalt memakai SQL.
 
 ## Rencana struktur file
 - `src/agent/graph.py` — `create_agent(...)` + daftar middleware (menggantikan `call_model`)
@@ -211,7 +213,8 @@ Rencana (belum ditambahkan ke `.env.example`):
 
 ## Deploy
 `docker compose up -d --build` di server: service `app` + `db` (volume `pgdata`), `restart: unless-stopped`.
-Image `db` diganti `pgvector/pgvector:pg16` (Postgres 16 + ekstensi `vector`): satu database untuk memori chat dan vektor.
+Image `db`: `pgvector/pgvector:pg16` (Postgres 16 + ekstensi `vector`, sejak 20 Nov 2026): satu database untuk memori
+chat dan vektor. Pindah dari `postgres:16-alpine` memakai volume yang sama, lalu `REINDEX DATABASE` (beda collation libc).
 HTTPS lewat Nginx/Cloudflare Tunnel di depan port 8000. **(nanti: pilih host & domain)**
 
 ## Keputusan
@@ -235,6 +238,11 @@ Ditahan dengan batas panggilan, validasi input tool, cek jawaban, dan eval.
 Loop ReAct dan fitur produksi (retry, fallback, batas panggilan, ringkasan riwayat, PII) sudah tersedia dan teruji,
 jadi kode yang ditulis lebih sedikit. `create_agent` tetap menghasilkan graph LangGraph, jadi checkpointer Postgres,
 streaming, LangSmith, dan `langgraph dev` tetap jalan seperti sekarang.
+
+### Keyword search: BM25 di memori, bukan full-text Postgres
+Full-text Postgres (`ts_rank`) tidak memakai IDF, jadi kata langka seperti nama proyek ("Rayana") tidak diberi
+bobot lebih. BM25 dibangun di memori dari tabel `darglobal_chunks` saat app start (±2.700 chunk, cepat).
+Data tetap satu sumber di Postgres. Wasalt tidak butuh ranking, jadi cukup query SQL.
 
 ### Jev hanya untuk rerank
 Pemilihan jalur, sapaan, dan penolakan ditangani agent. Jev hanya dipakai menilai relevansi passage di
