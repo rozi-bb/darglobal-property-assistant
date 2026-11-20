@@ -1,16 +1,23 @@
 [project]
-name = "agent"
+name = "darglobal-chatbot"
 version = "0.0.1"
-description = "Starter template for making a new agent LangGraph."
+description = "DarGlobal Property Assistant: chatbot LangGraph untuk data DarGlobal & Wasalt."
 authors = [
     { name = "William Fu-Hinthorn", email = "13333726+hinthornw@users.noreply.github.com" },
 ]
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.10"
+requires-python = ">=3.11,<3.14"
 dependencies = [
+    "chainlit>=2.12.0",
+    "fastapi>=0.165.0",
+    "langchain-core>=1.8.4",
+    "langchain-openai>=1.8.5",
     "langgraph>=1.2.14",
+    "langgraph-checkpoint-postgres>=3.2.1",
+    "psycopg[binary,pool]>=3.3.9",
     "python-dotenv>=1.0.1",
+    "uvicorn[standard]>=0.41.0",
 ]
 
 
@@ -22,10 +29,11 @@ requires = ["setuptools>=84.1.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["langgraph.templates.agent", "agent"]
+packages = ["langgraph.templates.agent", "agent", "server"]
 [tool.setuptools.package-dir]
 "langgraph.templates.agent" = "src/agent"
 "agent" = "src/agent"
+"server" = "src/server"
 
 
 [tool.setuptools.package-data]
@@ -58,8 +66,16 @@ convention = "google"
 [dependency-groups]
 dev = [
     "anyio>=4.14.2",
+    "httpx>=0.28.1",
     "langgraph-cli[inmem]>=0.4.14",
     "mypy>=1.13.0",
     "pytest>=9.0.3",
     "ruff>=0.8.2",
+]
+
+[tool.pytest.ini_options]
+addopts = "-m 'not integration'"
+markers = [
+    "integration: memanggil API asli (OpenRouter); jalankan dengan -m integration",
+    "langsmith: test yang dilacak LangSmith",
 ]

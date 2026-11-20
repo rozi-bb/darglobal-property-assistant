@@ -1,54 +1,28 @@
-"""LangGraph single-node graph template.
+"""Konstruksi graph agent.
 
-Returns a predefined response. Replace logic and configuration as needed.
+Baseline: START -> call_model -> END.
+
+- `graph` (tanpa checkpointer) dipakai `langgraph dev`; persistence diurus server dev.
+- `build_graph(checkpointer)` dipakai backend FastAPI dengan checkpointer Postgres.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict
+from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
-from langgraph.graph import StateGraph
-from langgraph.runtime import Runtime
-from typing_extensions import TypedDict
-
-
-class Context(TypedDict):
-    """Context parameters for the agent.
-
-    Set these when creating assistants OR when invoking the graph.
-    See: https://langchain-ai.github.io/langgraph/cloud/how-tos/configuration_cloud/
-    """
-
-    my_configurable_param: str
+from agent.nodes import call_model
+from agent.state import State
 
 
-@dataclass
-class State:
-    """Input state for the agent.
-
-    Defines the initial structure of incoming data.
-    See: https://langchain-ai.github.io/langgraph/concepts/low_level/#state
-    """
-
-    changeme: str = "example"
+def build_graph(checkpointer: BaseCheckpointSaver | None = None) -> CompiledStateGraph:
+    """Rakit dan compile graph."""
+    builder = StateGraph(State)
+    builder.add_node("call_model", call_model)
+    builder.add_edge(START, "call_model")
+    builder.add_edge("call_model", END)
+    return builder.compile(checkpointer=checkpointer, name="DarGlobal Assistant")
 
 
-async def call_model(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
-    """Process input and returns output.
-
-    Can use runtime context to alter behavior.
-    """
-    return {
-        "changeme": "output from call_model. "
-        f"Configured with {(runtime.context or {}).get('my_configurable_param')}"
-    }
-
-
-# Define the graph
-graph = (
-    StateGraph(State, context_schema=Context)
-    .add_node(call_model)
-    .add_edge("__start__", "call_model")
-    .compile(name="New Graph")
-)
+graph = build_graph()
