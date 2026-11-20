@@ -64,7 +64,7 @@ START ──▶ call_model ──(ada tool_calls)──▶ tools ──▶ call_
 HTTPS lewat Nginx/Cloudflare Tunnel di depan port 8000. **(nanti: pilih host & domain)**
 
 ## Keputusan: provider LLM
-**DeepSeek API langsung** (`https://api.deepseek.com`, model `deepseek-chat`), bukan model `:free` OpenRouter seperti di email HR.
+**DeepSeek API langsung** (`https://api.deepseek.com`, model `deepseek-flash`), bukan model `:free` OpenRouter seperti di email HR.
 Alasan: rate limit model gratis OpenRouter terlalu kecil untuk testing, eval, dan penguji HR.
 `llm.py` memakai `ChatOpenAI` dengan `base_url`, jadi pindah ke OpenRouter (atau provider lain) cukup ganti
 `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` di `.env`.

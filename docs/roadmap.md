@@ -12,7 +12,8 @@ Cara pakai tiap sesi: "Baca docs/roadmap.md, kerjakan task belum-tercentang beri
 - [x] LLM via API kompatibel OpenAI, default DeepSeek (llm.py) + node `call_model` dengan system prompt (nodes.py)
 - [x] Graph START → call_model → END (graph.py)
 - [x] Unit test node pakai fake LLM
-- [ ] Isi `LLM_API_KEY` (DeepSeek) di `.env`, coba di `langgraph dev`, lihat trace di LangSmith
+- [x] Isi `LLM_API_KEY` (DeepSeek) di `.env` dan tes chat asli
+- [ ] Coba di `langgraph dev`, lihat trace di LangSmith
 
 ## Milestone 2: Kerangka produk
 - [x] FastAPI + `/health` + config dari env
@@ -20,7 +21,7 @@ Cara pakai tiap sesi: "Baca docs/roadmap.md, kerjakan task belum-tercentang beri
 - [x] Endpoint `/api/chat` streaming (SSE)
 - [x] UI Chainlit di-mount ke FastAPI
 - [x] Dockerfile + docker-compose (app + db)
-- [ ] Tes multi-turn manual di UI dengan key asli
+- [x] Tes multi-turn dengan key asli (API + UI)
 
 ## Milestone 3: Data & tools (nanti)
 - [ ] Bersihkan data (outlier harga sewa, `rent_freq` objek, title kosong, sisa daftar negara)
