@@ -89,7 +89,8 @@ Agent ReAct memilih sendiri tool yang dipanggil, boleh berkali-kali (detail: `ar
 - Risiko: agent ReAct memanggil LLM beberapa kali per pertanyaan (biaya & latensi naik); ditahan batas panggilan.
 - Asumsi: penguji bertanya dalam bahasa Inggris.
 
-## 15. Dataset Eval Awal (W) **(nanti: lengkapi jawaban acuan)**
+## 15. Dataset Eval Awal (W)
+Jawaban acuan + 7 kasus tambahan: `src/evals/dataset.jsonl`. Hasil terakhir: `docs/eval-results.md`.
 1. "What is Trump Tower Jeddah?" → proyek DarGlobal di Jeddah, sumber DarGlobal.
 2. "Which DarGlobal projects are in Saudi Arabia?" → Neptune, Trump Tower Jeddah, Trump Plaza, Rayana, Amaya.
 3. "Show me 3-bedroom apartments for rent in Riyadh under 80,000 SAR" → daftar iklan Wasalt + link.

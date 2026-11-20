@@ -49,11 +49,18 @@ SOURCE_BY_TOOL = {
 
 URL_RE = re.compile(r"https?://[^\s)\]>\"'`*|]+")
 _CURRENCY = r"(?:SAR|SR|AED|USD|GBP|EUR|OMR|QAR|riyals?|dirhams?|\$|£|€)"
-_NUM = r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?"
-_MULT = r"(?:\s?(million|mn|bn|billion|thousand|k|m)(?![a-z²2]))?"
+# Format angka: 1,250,000.5 (Inggris) · 1.250.000,5 (Indonesia/Eropa) · 1,5 (desimal koma) · 1250000.5
+_NUM = r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+,\d{1,2}(?!\d)|\d+(?:\.\d+)?"
+_MULT = r"(?:\s?(million|mn|bn|billion|thousand|k|m|juta|jt|ribu|rb|miliar)(?![a-z²2]))?"
 PRICE_RE = re.compile(rf"{_CURRENCY}\s?({_NUM}){_MULT}|({_NUM}){_MULT}\s?{_CURRENCY}", re.IGNORECASE)
 PLAIN_NUM_RE = re.compile(_NUM)
-MULTIPLIERS = {"k": 1e3, "thousand": 1e3, "m": 1e6, "mn": 1e6, "million": 1e6, "bn": 1e9, "billion": 1e9}
+MULTIPLIERS = {
+    "k": 1e3, "thousand": 1e3, "ribu": 1e3, "rb": 1e3,
+    "m": 1e6, "mn": 1e6, "million": 1e6, "juta": 1e6, "jt": 1e6,
+    "bn": 1e9, "billion": 1e9, "miliar": 1e9,
+}
+THOUSANDS_COMMA_RE = re.compile(r"\d{1,3}(?:,\d{3})+")
+THOUSANDS_DOT_RE = re.compile(r"\d{1,3}(?:\.\d{3})+")
 
 
 @dynamic_prompt
@@ -67,11 +74,15 @@ def system_prompt_with_date(request: ModelRequest) -> str:
 
 @dataclass(frozen=True)
 class Price:
-    """Harga yang disebut di teks + toleransi pembulatan sesuai jumlah digit yang ditulis."""
+    """Harga yang disebut di teks + toleransi pembulatan sesuai jumlah digit yang ditulis.
+
+    `alternatives`: tafsiran lain (nilai, toleransi) kalau penulisan ambigu, mis. "36.700" = 36700 atau 36,7.
+    """
 
     text: str
     value: float
     tolerance: float
+    alternatives: tuple[tuple[float, float], ...] = ()
 
 
 def normalize_url(url: str) -> str:
@@ -84,11 +95,32 @@ def extract_urls(text: str) -> set[str]:
     return {normalize_url(u) for u in URL_RE.findall(text)}
 
 
+def parse_number(num: str) -> list[tuple[float, int]]:
+    """Tafsiran angka teks → [(nilai, jumlah desimal)], tafsiran paling mungkin di depan.
+
+    Pemisah ribuan koma (Inggris) dan titik (Indonesia/Eropa) sama-sama diterima. "36.700" ambigu:
+    36700 (ribuan) atau 36,7 (desimal), jadi keduanya dikembalikan.
+    """
+    if "," in num and "." in num:
+        decimal_sep = "," if num.rfind(",") > num.rfind(".") else "."
+        whole, frac = num.rsplit(decimal_sep, 1)
+        return [(float(f"{whole.replace(',', '').replace('.', '')}.{frac}"), len(frac))]
+    if "," in num:
+        if THOUSANDS_COMMA_RE.fullmatch(num):
+            return [(float(num.replace(",", "")), 0)]
+        return [(float(num.replace(",", ".")), len(num.split(",")[1]))]
+    if "." in num:
+        if THOUSANDS_DOT_RE.fullmatch(num):
+            thousands = (float(num.replace(".", "")), 0)
+            return [thousands] if num.count(".") > 1 else [thousands, (float(num), 3)]
+        return [(float(num), len(num.split(".")[1]))]
+    return [(float(num), 0)]
+
+
 def _to_price(num: str, mult: str | None, text: str) -> Price:
     factor = MULTIPLIERS.get((mult or "").lower(), 1.0)
-    clean = num.replace(",", "")
-    decimals = len(clean.split(".")[1]) if "." in clean else 0
-    return Price(text=text.strip(), value=float(clean) * factor, tolerance=0.5 * 10 ** (-decimals) * factor)
+    (value, tolerance), *rest = [(v * factor, 0.5 * 10 ** (-d) * factor) for v, d in parse_number(num)]
+    return Price(text=text.strip(), value=value, tolerance=tolerance, alternatives=tuple(rest))
 
 
 def extract_prices(text: str) -> list[Price]:
@@ -102,14 +134,17 @@ def extract_prices(text: str) -> list[Price]:
 
 def extract_numbers(text: str) -> set[float]:
     """Semua angka (termasuk yang berpengali) di teks hasil tool / pesan user."""
-    values = {float(n.replace(",", "")) for n in PLAIN_NUM_RE.findall(text)}
-    values.update(p.value for p in extract_prices(text))
+    values = {v for n in PLAIN_NUM_RE.findall(text) for v, _ in parse_number(n)}
+    for price in extract_prices(text):
+        values.add(price.value)
+        values.update(v for v, _ in price.alternatives)
     return values
 
 
 def price_supported(price: Price, known: set[float]) -> bool:
     """Harga dianggap benar kalau sama dengan angka di data (toleransi pembulatan atau 1%)."""
-    return any(abs(price.value - k) <= max(price.tolerance, 0.01 * abs(k)) for k in known)
+    readings = [(price.value, price.tolerance), *price.alternatives]
+    return any(abs(v - k) <= max(tol, 0.01 * abs(k)) for v, tol in readings for k in known)
 
 
 # ---------- cek jawaban ----------

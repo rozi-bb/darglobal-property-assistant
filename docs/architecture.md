@@ -89,8 +89,9 @@ Tidak dipakai: `HumanInTheLoopMiddleware` (untuk menyetujui aksi tool, sedangkan
 - Aturan, semuanya kode (tanpa LLM):
   1. Setiap URL di jawaban harus ada di hasil tool di thread ini (link get-in-touch dan halaman utama
      DarGlobal/Wasalt selalu boleh).
-  2. Setiap angka harga (SAR, AED, USD, …, termasuk "k"/"million") harus cocok dengan angka di hasil tool atau pesan
-     user (toleransi pembulatan / 1%).
+  2. Setiap angka harga (SAR, AED, USD, …, termasuk "k"/"million"/"juta") harus cocok dengan angka di hasil tool atau
+     pesan user (toleransi pembulatan / 1%). Format "1,250,000" dan "1.250.000" (jawaban bahasa Indonesia) sama-sama
+     dibaca; "36.700" yang ambigu dicoba sebagai 36700 dan 36,7.
   3. Sumber disebut: tool DarGlobal/Wasalt yang hasilnya `status: ok` di run ini → nama sumbernya wajib muncul.
 - Gagal dan revisi < 2 → draf dihapus dari state, ditambah pesan catatan perbaikan (id `answer-check-…`),
   `jump_to: "model"`. Catatan dihapus lagi setelah lolos. Draf yang gagal tidak ditampilkan ke user.
@@ -167,6 +168,19 @@ query + filter negara (ditulis agent)
 - `/api/chat` (SSE): `start` {thread_id} → `step` {tool, label, args}… → `answer` {text} atau `ask` {question, options}
   → (`error` {message}) → `end`. Setelah `ask`, kirim jawaban sebagai `message` dengan `thread_id` yang sama.
 
+## Eval — `src/evals/`
+- Dataset `src/evals/dataset.jsonl`: 8 pertanyaan PRD #15 + 7 kasus tambahan (tanya balik, pertanyaan lanjutan,
+  lokasi yang tidak ada, bahasa Indonesia, data pribadi, saran investasi, iklan Wasalt tidak boleh jadi "apartemen
+  DarGlobal"). Tiap kasus: giliran user, jawaban tombol (`ask_answer`), ekspektasi, dan jawaban acuan.
+- Runner menjalankan agent lewat `run_agent()` yang sama dengan UI/API (checkpointer di memori, DB lokal, LLM asli).
+- Evaluator kode: `tool_choice` (tool yang diharapkan dipanggil; kasus menolak tidak memanggil tool data),
+  `sources`, `grounded` (cek link/harga yang sama dengan middleware → metrik "0 karangan"), `behavior`
+  (menolak tanpa bocor instruksi / link get-in-touch / tanya balik), `content` (kata wajib / terlarang).
+- Juri LLM `correct`: DeepSeek membandingkan jawaban dengan jawaban acuan (JSON mode; DeepSeek mode thinking menolak
+  `tool_choice` paksa). Juri = model yang sama dengan agent, jadi berpotensi bias; evaluator kode tetap jadi pagar utama.
+- `uv run python -m evals.run` → `docs/eval-results.md` (exit 1 kalau target PRD #12 tidak tercapai).
+  `--upload` mengunggah dataset (nama `darglobal-eval-<hash isi>`) dan experiment ke LangSmith (butuh `LANGSMITH_API_KEY`).
+
 ## Pipeline data (offline) — `src/dataprep/`
 Prinsip: ambil **JSON CMS bawaan halaman** (`__NEXT_DATA__`, Strapi), bukan teks layar → tanpa menu/teks dobel.
 Tidak ada bypass CAPTCHA/anti-bot; patuhi robots.txt & llms.txt Wasalt; kontak pengiklan tidak diambil.
@@ -212,6 +226,7 @@ Opsional:
 | `pgvector` | tipe `vector` di psycopg |
 | `rank-bm25` | keyword search BM25 |
 | `typesafe-sdk` | rerank Jev |
+| `langsmith` | dataset + experiment eval (sebelumnya hanya terpasang lewat `langchain`; ditulis eksplisit 20 Nov 2026) |
 
 pandas tetap hanya di grup `dev` (notebook EDA); tools Wasalt memakai SQL.
 
@@ -225,6 +240,7 @@ pandas tetap hanya di grup `dev` (notebook EDA); tools Wasalt memakai SQL.
 - `src/agent/llm.py` · `src/agent/prompts.py` — model utama/cadangan · system prompt
 - `src/server/chat.py` — `run_agent()` + `/api/chat` · `ui.py` — Chainlit · `runtime.py` — graph + checkpointer app
 - `src/dataprep/` — scrape, bersihkan, chunk, muat ke Postgres, embed
+- `src/evals/` — dataset eval, evaluator, runner
 
 ## Deploy
 `docker compose up -d --build` di server: service `app` + `db` (volume `pgdata`), `restart: unless-stopped`.

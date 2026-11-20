@@ -12,7 +12,8 @@ Latar belakang lamaran (lokal saja, tidak di-commit): `CONTEXT.md`
 - Dev app (FastAPI + UI Chainlit): `docker compose up -d db` lalu `uv run uvicorn server.main:app --reload --port 8000`
 - Full stack (Docker): `docker compose up --build`
 - Test:     `uv run pytest -q` (integration: `uv run pytest -q -m integration`)
-- Lint:     `uv run ruff check .`
+- Lint:     `uv run ruff check src tests`
+- Eval:     `uv run python -m evals.run` (LLM asli + DB lokal → `docs/eval-results.md`; `--upload` ke LangSmith)
 - Data:     `uv run python -m dataprep.build` lalu `uv run python -m dataprep.load_db` lalu `uv run python -m dataprep.embed` (scrape ulang DarGlobal: `uv run python -m dataprep.darglobal`)
 
 ## Struktur
@@ -20,6 +21,7 @@ Latar belakang lamaran (lokal saja, tidak di-commit): `CONTEXT.md`
   · Tools `src/agent/tools.py` + `wasalt.py` · Retrieval `src/agent/retrieval.py` · DB `src/agent/db.py`
   · LLM `src/agent/llm.py` · Prompt `src/agent/prompts.py`
 - Backend: `src/server/main.py` (FastAPI) · `config.py` · `chat.py` (endpoint chat) · `ui.py` (Chainlit)
+- Eval: `src/evals/` (dataset, evaluator, runner)
 - Data: pipeline `src/dataprep/` · mentah `data/raw/` (tidak di-commit) · bersih `data/processed/` · Test: `tests/`
 - Env DB memori: `CHECKPOINT_DATABASE_URL` (JANGAN pakai nama `DATABASE_URL`: Chainlit akan menyalakan data layer-nya sendiri)
 

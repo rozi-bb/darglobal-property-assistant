@@ -38,7 +38,8 @@ Cara pakai tiap sesi: "Baca docs/roadmap.md, kerjakan task belum-tercentang beri
 - [x] Finalisasi system prompt (PRD #6, #10, #11)
 
 ## Milestone 4: Eval & keamanan (nanti)
-- [ ] Dataset eval (PRD #15) di LangSmith + evaluator
+- [x] Dataset eval (PRD #15) di LangSmith + evaluator — 15 kasus, 15/15 lolos (`docs/eval-results.md`);
+      `--upload` ke LangSmith belum dites (`LANGSMITH_API_KEY` kosong)
 - [ ] Tes prompt injection & kebocoran system prompt
 - [ ] Rate limit sederhana per IP (batasi biaya LLM)
 

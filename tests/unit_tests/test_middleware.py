@@ -30,6 +30,9 @@ DARGLOBAL = tool_msg("search_darglobal", {
 @pytest.mark.parametrize(("text", "value"), [
     ("SAR 1,800,000", 1_800_000), ("1.8 million SAR", 1_800_000), ("40k AED", 40_000),
     ("$350", 350), ("60,000 riyals", 60_000), ("SAR 5,500 per m²", 5_500),
+    # format Indonesia / Eropa
+    ("SAR 36.700", 36_700), ("SAR 1.250.000", 1_250_000), ("SAR 1,5 juta", 1_500_000),
+    ("SAR 1.250.000,50", 1_250_000.5), ("40 ribu SAR", 40_000),
 ])
 def test_extract_prices(text: str, value: float) -> None:
     prices = extract_prices(text)
@@ -44,6 +47,21 @@ def test_price_supported_allows_rounding_only() -> None:
     known = {1_834_000.0}
     assert price_supported(extract_prices("1.8 million SAR")[0], known)
     assert not price_supported(extract_prices("2.5 million SAR")[0], known)
+
+
+def test_price_supported_reads_dot_as_thousands_or_decimal() -> None:
+    # Jawaban berbahasa Indonesia: "SAR 36.700" = 36700; angka "36.7" tetap cocok dengan data 36,7
+    assert price_supported(extract_prices("SAR 36.700")[0], {36_700.0})
+    assert price_supported(extract_prices("SAR 36.700")[0], {36.7})
+    assert not price_supported(extract_prices("SAR 36.700")[0], {50_000.0})
+
+
+def test_check_answer_accepts_indonesian_number_format() -> None:
+    tool = ToolMessage(json.dumps({"source": "Wasalt", "status": "ok", "median": 36700.0, "p25": 27750.0}),
+                       tool_call_id="c1", name="wasalt_market_stats")
+    messages = [HumanMessage("Berapa harga sewa apartemen di Jeddah?"), tool]
+    assert check_answer("Menurut Wasalt: median SAR 36.700, p25 SAR 27.750 per tahun.", messages).ok
+    assert not check_answer("Menurut Wasalt: median SAR 39.900.", messages).ok
 
 
 def test_extract_urls_strips_punctuation() -> None:
