@@ -3,6 +3,7 @@
 - `/health`    : cek server hidup
 - `/api/chat`  : endpoint chat streaming (server/chat.py)
 - `/chat`      : UI Chainlit (server/ui.py), `/` diarahkan ke sini
+- `/case-study/`: halaman case study statis (docs/case-study, ikut di image Docker)
 
 Jalankan lokal: `uv run uvicorn server.main:app --reload --port 8000`
 """
@@ -17,6 +18,7 @@ from pathlib import Path
 from chainlit.utils import mount_chainlit
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg.rows import dict_row
@@ -31,6 +33,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger(__name__)
 
 UI_PATH = "/chat"
+CASE_STUDY_PATH = "/case-study"
+# src/server/main.py → <root>/docs/case-study (sama di repo lokal dan di image: /app/docs/case-study)
+CASE_STUDY_DIR = Path(__file__).resolve().parents[2] / "docs" / "case-study"
 
 
 @asynccontextmanager
@@ -79,7 +84,16 @@ async def root() -> RedirectResponse:
     return RedirectResponse(UI_PATH)
 
 
+@app.get(CASE_STUDY_PATH, include_in_schema=False)
+async def case_study() -> RedirectResponse:
+    """Tambah garis miring supaya gambar relatif di halaman case study ter-resolve."""
+    return RedirectResponse(f"{CASE_STUDY_PATH}/")
+
+
 app.include_router(chat_router)
+
+if CASE_STUDY_DIR.is_dir():
+    app.mount(CASE_STUDY_PATH, StaticFiles(directory=CASE_STUDY_DIR, html=True), name="case-study")
 
 # UI Chainlit di-mount terakhir supaya route di atas tidak tertutup.
 mount_chainlit(app=app, target=str(Path(__file__).with_name("ui.py")), path=UI_PATH)

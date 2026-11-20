@@ -28,6 +28,19 @@ def test_root_redirects_to_ui(no_database) -> None:
     assert res.headers["location"] == "/chat"
 
 
+def test_case_study_is_served(no_database) -> None:
+    with TestClient(app) as client:
+        redirect = client.get("/case-study", follow_redirects=False)
+        page = client.get("/case-study/")
+        image = client.get("/case-study/chat-stats.png")
+        pdf = client.get("/case-study/Rozi-DarGlobal-case-study.pdf")
+    assert redirect.status_code in (302, 307)
+    assert redirect.headers["location"] == "/case-study/"
+    assert page.status_code == 200 and page.headers["content-type"].startswith("text/html")
+    assert image.status_code == 200 and image.headers["content-type"] == "image/png"
+    assert pdf.status_code == 200 and pdf.headers["content-type"] == "application/pdf"
+
+
 def test_chat_sends_final_answer(no_database, fake_llm) -> None:
     fake_llm("Trump Tower Jeddah is a DarGlobal project")
     with TestClient(app) as client:

@@ -26,6 +26,7 @@ Browser ──HTTPS──▶ Tailscale Funnel ──▶ app (FastAPI, port 8000)
                                      ├── /            UI Chainlit (di-mount ke FastAPI)
                                      ├── /api/chat    endpoint chat (SSE streaming)
                                      ├── /health      cek server hidup
+                                     ├── /case-study/ halaman case study statis (docs/case-study)
                                      └── agent (create_agent)
                                           ├── model ──▶ DeepSeek API (cadangan: OpenRouter)
                                           ├── search_darglobal ──▶ pgvector + BM25 (memori) + TypeSafe API (rerank Jev)
@@ -279,7 +280,7 @@ DB server wajib diisi data: `dataprep.load_db` lalu `dataprep.embed` (tanpa itu 
 HTTPS lewat Nginx/Cloudflare Tunnel di depan port 8000.
 
 ### Production (sejak 20 Nov 2026)
-- **URL publik: https://rozi.tail7d5bfc.ts.net:10000/** (UI di `/`, API di `/api/chat`, cek hidup di `/health`).
+- **URL publik: https://rozi.tail7d5bfc.ts.net:10000/** (UI di `/`, API di `/api/chat`, cek hidup di `/health`, case study di `/case-study/`).
 - Host: laptop Ubuntu 24.04 milik sendiri yang nyala 24 jam (x86_64, 32 GB RAM, sleep/suspend dimatikan), folder
   `~/projects/darglobal-chatbot`. Laptop ini juga menjalankan proyek lain, jadi port dipilih supaya tidak bentrok.
 - **HTTPS + URL publik: Tailscale Funnel** (gratis, sertifikat otomatis, tanpa domain, tanpa buka port router, IP rumah

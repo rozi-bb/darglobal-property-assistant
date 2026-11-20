@@ -14,6 +14,7 @@
 *.pyc
 tests
 docs
+!docs/case-study
 static
 CONTEXT.md
 AGENTS.md

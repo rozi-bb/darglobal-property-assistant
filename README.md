@@ -8,6 +8,8 @@ Docker Compose.
 
 **Live demo: https://rozi.tail7d5bfc.ts.net:10000/**
 
+**Case study: https://rozi.tail7d5bfc.ts.net:10000/case-study/** (source in [`docs/case-study/`](docs/case-study/), also as PDF)
+
 Try for example:
 - "What is Trump Tower Jeddah?"
 - "Which DarGlobal projects are in Saudi Arabia?"
@@ -83,6 +85,7 @@ Browser ──HTTPS──▶ app (FastAPI, port 8000)
                     ├── /chat       Chainlit UI (/ redirects here)
                     ├── /api/chat   chat endpoint (SSE)
                     ├── /health
+                    ├── /case-study/ static case study page
                     └── agent (create_agent + middleware)
                          ├── LLM ──▶ DeepSeek API (OpenAI-compatible; optional fallback model)
                          ├── search_darglobal ──▶ pgvector + BM25 (+ optional rerank)

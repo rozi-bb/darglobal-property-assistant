@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DarGlobal Property Assistant: case study</title>
+<meta name="description" content="Agentic RAG chatbot over DarGlobal and Wasalt data, with code-checked answers. Technical assignment, November 2026.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DarGlobal Property Assistant: case study">
+<meta property="og:description" content="Agentic RAG chatbot over DarGlobal and Wasalt data, with code-checked answers.">
+<meta property="og:url" content="https://rozi.tail7d5bfc.ts.net:10000/case-study/">
+<meta property="og:image" content="https://rozi.tail7d5bfc.ts.net:10000/chat/public/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ground: oklch(0.975 0.012 265);
+    --ground-raised: oklch(0.995 0.004 265);
+    --ink: oklch(0.25 0.045 265);
+    --ink-muted: oklch(0.43 0.04 265);
+    --ink-faint: oklch(0.52 0.03 265);
+    --link: oklch(0.5 0.24 265);
+    --panel: oklch(0.92 0.016 265);
+    --rule: oklch(0.35 0.04 265 / 0.2);
+    --pass: oklch(0.52 0.13 160);
+    --col: 420px;
+    --media: 46.75rem;
+    --fs: 17px;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--ground); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif; font-weight: 380; font-size: var(--fs);
+    letter-spacing: 0.01em; line-height: 1.7;
+    font-feature-settings: "cv11", "ss01";
+  }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong, b { font-weight: 545; }
+  .col { width: min(var(--col), 100% - 32px); margin-inline: auto; }
+  .media { width: min(var(--media), 100% - 32px); margin: 2.25rem auto; }
+  main { padding: 3.5rem 0 4rem; }
+
+  .topline { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 13px; color: var(--ink-faint); }
+  .topline .sep { flex: 1; }
+  h1 { font-size: 1.3em; font-weight: 545; line-height: 1.35; letter-spacing: 0; margin: 2.5rem 0 0.4rem; }
+  .kicker { color: var(--ink-muted); margin: 0; }
+  h2 { font-size: 19.1px; font-weight: 380; margin: 3.25rem 0 0.75rem; letter-spacing: 0.005em; }
+  h3 { font-size: 1em; font-weight: 545; margin: 1.75rem 0 0.25rem; }
+  p { margin: 0 0 1rem; }
+  .muted { color: var(--ink-muted); }
+  .small { font-size: 13px; color: var(--ink-faint); line-height: 1.55; }
+  .mono, code { font-family: "Geist Mono", ui-monospace, monospace; font-weight: 500; font-size: 0.875em;
+    font-variant-numeric: tabular-nums; letter-spacing: 0; }
+  code { font-weight: 450; color: var(--ink); }
+
+  /* Fact sheet under the title */
+  .facts { margin: 1.75rem 0 0; display: grid; gap: 1.1rem; }
+  .facts dt { font-size: 13px; color: var(--ink-faint); }
+  .facts dd { margin: 0; }
+  .ledger { display: grid; grid-template-columns: max-content 1fr; gap: 0.15rem 0.9rem; align-items: baseline; }
+  .ledger .v { font-family: "Geist Mono", ui-monospace, monospace; font-weight: 500; font-size: 14.9px;
+    font-variant-numeric: tabular-nums; color: var(--pass); letter-spacing: 0; }
+  .ledger .v.plain { color: var(--ink); }
+  .ledger .l { color: var(--ink-muted); }
+
+  ul.lead { padding-left: 1.1rem; margin: 0 0 1rem; }
+  ul.lead li { margin-bottom: 0.55rem; }
+  ul.lead li::marker { color: var(--ink-faint); }
+
+  .callout { background: var(--ground-raised); border: 1px solid var(--rule); border-radius: 0.75rem;
+    padding: 0.9rem 1.1rem; margin: 0 0 1.25rem; }
+
+  /* Media frames */
+  figure { margin: 0; break-inside: avoid; }
+  .frame { background: var(--panel); border-radius: 1.25rem; padding: 2rem; }
+  .frame.tight { padding: 1.5rem; }
+  .window { display: block; width: 100%; height: auto; border-radius: 0.75rem; background: #fff;
+    box-shadow: 0 1px 2px oklch(0.25 0.045 265 / 0.08), 0 12px 32px -12px oklch(0.25 0.045 265 / 0.28); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
+  figcaption { width: min(var(--col), 100%); margin: 0.85rem auto 0; font-size: 13px; color: var(--ink-faint); line-height: 1.55; }
+
+  /* Component list (Privy "agent nodes") */
+  .nodes { display: grid; gap: 0.9rem; margin: 0.5rem 0 1rem; }
+  .node-h { display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
+  .node-h .mono { color: var(--ink); }
+  .node p { margin: 0.1rem 0 0; color: var(--ink-muted); }
+  .tag { font-family: "Geist Mono", ui-monospace, monospace; font-size: 10.5px; font-weight: 500; letter-spacing: 0.04em;
+    color: var(--ink-muted); border: 1px solid var(--rule); border-radius: 999px; padding: 0 0.45rem; line-height: 1.6; }
+  .tag.focal { color: var(--link); border-color: var(--link); }
+
+  /* Challenges */
+  .challenge { margin: 0 0 1.6rem; break-inside: avoid; }
+  .challenge .row { display: grid; grid-template-columns: 4.6rem 1fr; gap: 0 0.75rem; }
+  .challenge .k { font-size: 13px; color: var(--ink-faint); padding-top: 0.2rem; }
+  .challenge .row p { margin: 0 0 0.35rem; }
+
+  /* Results table */
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; line-height: 1.5; }
+  th { text-align: left; font-weight: 380; font-size: 13px; color: var(--ink-faint); padding: 0 0.5rem 0.4rem 0; border-bottom: 1px solid var(--rule); }
+  td { padding: 0.55rem 0.5rem 0.55rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td.v { font-family: "Geist Mono", ui-monospace, monospace; font-weight: 500; font-variant-numeric: tabular-nums;
+    color: var(--pass); white-space: nowrap; font-size: 13.5px; letter-spacing: 0; padding-right: 1.1rem; }
+  td.t { color: var(--ink-muted); white-space: nowrap; font-family: "Geist Mono", ui-monospace, monospace; font-size: 13px; letter-spacing: 0; }
+  td.how { color: var(--ink-muted); }
+  .wide-table { width: min(34rem, 100% - 32px); margin: 1rem auto 1.5rem; break-inside: avoid; }
+
+  .links { display: grid; gap: 0.2rem; }
+  footer { margin-top: 3.5rem; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
+
+  svg text { font-family: "Inter", system-ui, sans-serif; letter-spacing: 0.01em; }
+  svg .m { font-family: "Geist Mono", ui-monospace, monospace; letter-spacing: 0; }
+
+  @media (max-width: 640px) {
+    .pair { grid-template-columns: 1fr; }
+    .frame { padding: 1rem; }
+  }
+
+  @page { size: A4; margin: 14mm 0 14mm; }
+  @media print {
+    :root { --fs: 13px; --col: 33rem; --media: 41rem; }
+    body { line-height: 1.6; }
+    .facts > div, .challenge .row { break-inside: avoid; }
+    footer { margin-top: 1rem; padding-top: 0.6rem; }
+    .links { gap: 0; }
+    main { padding: 0; }
+    h1 { margin-top: 1.75rem; }
+    h2 { font-size: 15.5px; margin-top: 2rem; break-after: avoid; }
+    h3 { break-after: avoid; }
+    .media { margin: 1.6rem auto; }
+    .frame { padding: 1.5rem; }
+    .ledger .v { font-size: 12.5px; }
+    table { font-size: 12.5px; }
+    td.v, td.t { font-size: 11.5px; }
+    .wide-table { width: 40rem; }
+    html, body { background: #fff; }
+    .media.cover { margin-top: 1.25rem; }
+    .media.cover .frame { padding: 1.25rem 2.5rem; }
+    .window.narrow { width: 62%; margin-inline: auto; }
+    .frame.tight > svg { display: block; width: 92%; margin-inline: auto; }
+    .frame.tight { padding: 1.1rem 1.25rem; }
+    h1 { margin-top: 1.25rem; }
+    footer { break-inside: avoid; }
+    .screen-only { display: none; }
+    td { padding-top: 0.38rem; padding-bottom: 0.38rem; }
+    .wide-table { margin-bottom: 0.5rem; }
+    .node, .callout, li { break-inside: avoid; }
+    a { color: var(--link); }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<div class="col">
+  <div class="topline">
+    <span>Case study</span>
+    <span class="sep"></span>
+    <a href="https://rozi.tail7d5bfc.ts.net:10000/">Live demo</a>
+    <a href="https://github.com/rozi-bb/darglobal-property-assistant">Source on GitHub</a>
+    <a class="screen-only" href="Rozi-DarGlobal-case-study.pdf">PDF</a>
+    <span>8 min read</span>
+  </div>
+</div>
+
+<figure class="media cover">
+  <div class="frame"><img class="window" src="chat-stats.png" alt="Chat answer: Wasalt villa sale prices in Jeddah, with median, middle 50% range, price per square metre and sample size"></div>
+  <figcaption>Live answer. The grey line is the streamed tool step; the numbers come from SQL over the Wasalt snapshot,
+    and the answer says where they come from and that they are not DarGlobal prices.</figcaption>
+</figure>
+
+<header class="col">
+  <h1>DarGlobal Property Assistant</h1>
+  <p class="kicker">An agentic chatbot that answers questions about DarGlobal projects and the Saudi property market, built
+    on scraped DarGlobal and Wasalt data. Every link and price in an answer is checked in code before the user sees it.</p>
+
+  <dl class="facts">
+    <div><dt>TL;DR</dt><dd>One LangChain&nbsp;v1 agent with four tools: hybrid search over DarGlobal content, SQL search
+      and market statistics over Wasalt listings, and a clarifying question with buttons. A middleware layer checks each
+      draft answer against the tool results and sends it back for revision if a link, price or source is wrong. Shipped
+      with Docker Compose and running on a public URL.</dd></div>
+    <div><dt>My role</dt><dd>Solo: requirements, data pipeline, agent, backend, UI, evaluation and deployment.</dd></div>
+    <div><dt>Time &amp; status</dt><dd>3 days (brief received 18 Nov 2026, delivered 20 Nov 2026). Technical
+      assignment; live and open source.</dd></div>
+    <div><dt>Key results</dt><dd>
+      <div class="ledger">
+        <span class="v">24/24</span><span class="l">evaluation cases passed (correct and sourced)</span>
+        <span class="v">0</span><span class="l">answers with an invented link or price</span>
+        <span class="v">~1&nbsp;s</span><span class="l">to the first streamed step on the live URL</span>
+      </div>
+    </dd></div>
+    <div><dt>Stack</dt><dd>Python 3.12 · LangChain v1 / LangGraph · DeepSeek (OpenAI-compatible) · Postgres 16 +
+      pgvector · FastAPI · Chainlit · Docker Compose · Tailscale Funnel · GitHub Actions</dd></div>
+  </dl>
+</header>
+
+
+
+<section class="col">
+  <h2>Problem</h2>
+  <p>The brief: scrape DarGlobal and Wasalt, build an AI chatbot on that data, run it in Docker and deploy it to a
+    working URL. Building something that answers is quick. The hard part is building something a property developer
+    could put in front of buyers:</p>
+  <ul class="lead">
+    <li><strong>Two sources that must not be mixed.</strong> DarGlobal publishes project marketing content and almost no
+      unit prices. Wasalt is a third-party portal full of priced listings from other advertisers. A careless bot
+      presents a stranger's listing as a DarGlobal unit.</li>
+    <li><strong>Invented numbers are a liability.</strong> A made-up price or a made-up URL in a real-estate answer is
+      worse than no answer.</li>
+    <li><strong>Scraped text is untrusted.</strong> Blog posts link to about 150 outside domains, and listing titles are
+      written by advertisers. Any of it can carry instructions aimed at the model.</li>
+    <li><strong>The live DarGlobal site is behind bot protection</strong> (a CAPTCHA), which I chose not to bypass.</li>
+  </ul>
+
+  <h2>Solution</h2>
+  <div class="callout">One agent that picks its own tools, and a code check between the model and the user. A draft
+    that fails the check is never shown.</div>
+  <ul class="lead">
+    <li><strong>One tool per source.</strong> DarGlobal content goes through hybrid retrieval; Wasalt goes through SQL,
+      so prices and counts are computed, not generated. Each tool result is labelled with its source.</li>
+    <li><strong>Code-checked answers.</strong> Every link must appear in this conversation's tool results and point to
+      darglobal.co.uk or wasalt.sa; every price must match a number in the data; the source must be named. A failing
+      draft goes back to the model with the reason, up to two times, then a safe fallback.</li>
+    <li><strong>Ask instead of guess.</strong> “I want an apartment” is too vague to search, so the agent asks back with
+      buttons (a LangGraph <code>interrupt</code>), and the conversation resumes from the checkpoint.</li>
+    <li><strong>Visible progress.</strong> The UI streams each tool step as it happens, so the user sees work within
+      about a second even when the full answer takes several.</li>
+    <li><strong>Guardrails.</strong> A leak guard on everything the user sees, PII masking, per-IP and daily rate limits,
+      and API keys that never leave the backend.</li>
+  </ul>
+</section>
+
+<figure class="media">
+  <div class="frame">
+    <div class="pair">
+      <img class="window" src="chat-ask.png" alt="The bot asks which city and whether to buy or rent, with five answer buttons">
+      <img class="window" src="chat-listings.png" alt="Table of 3-bedroom apartments for rent in Riyadh under SAR 80,000 from Wasalt, with listing links">
+    </div>
+  </div>
+  <figcaption>Left: a vague request gets a clarifying question with buttons. Right: a filtered Wasalt search; every
+    “Listing” link was in the tool result and on wasalt.sa, or the answer would not have passed the check.</figcaption>
+</figure>
+
+<figure class="media">
+  <div class="frame tight">
+    <svg viewBox="0 0 720 470" width="100%" role="img" aria-label="Architecture: browser to FastAPI app, to the agent, which calls DeepSeek and four tools backed by Postgres; drafts pass the answer check before reaching the user">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="oklch(0.43 0.04 265)"/>
+        </marker>
+      </defs>
+      <style>
+        .b { fill: oklch(0.995 0.004 265); stroke: oklch(0.35 0.04 265 / 0.28); stroke-width: 1; }
+        .bf { fill: oklch(0.995 0.004 265); stroke: oklch(0.5 0.24 265); stroke-width: 1.6; }
+        .t { font-size: 13px; font-weight: 545; fill: oklch(0.25 0.045 265); }
+        .s { font-size: 10.5px; fill: oklch(0.43 0.04 265); }
+        .g { font-size: 9px; font-weight: 500; fill: oklch(0.52 0.03 265); }
+        .gf { font-size: 9px; font-weight: 500; fill: oklch(0.5 0.24 265); }
+        .e { stroke: oklch(0.43 0.04 265); stroke-width: 1.1; fill: none; }
+        .ed { stroke: oklch(0.43 0.04 265); stroke-width: 1.1; fill: none; stroke-dasharray: 4 3; }
+        .el { font-size: 10px; fill: oklch(0.43 0.04 265); }
+      </style>
+
+      <!-- Row 1 -->
+      <rect class="b" x="10" y="14" width="150" height="58" rx="10"/>
+      <text class="t" x="24" y="38">Browser</text>
+      <text class="s" x="24" y="56">Chainlit chat or SSE client</text>
+      <text class="g m" x="150" y="28" text-anchor="end">UI</text>
+
+      <rect class="b" x="228" y="14" width="292" height="58" rx="10"/>
+      <text class="t" x="242" y="38">FastAPI app</text>
+      <text class="s" x="242" y="56">/chat UI · /api/chat SSE · rate limit</text>
+      <text class="g m" x="510" y="28" text-anchor="end">CODE</text>
+
+      <line class="e" x1="160" y1="43" x2="226" y2="43" marker-end="url(#arr)" marker-start="url(#arr)"/>
+      <text class="el" x="193" y="36" text-anchor="middle">HTTPS</text>
+
+      <!-- Row 2 -->
+      <rect class="bf" x="228" y="132" width="292" height="62" rx="10"/>
+      <text class="t" x="242" y="157">Agent · create_agent</text>
+      <text class="s" x="242" y="176">ReAct loop · call limits · retry · PII · summary</text>
+      <text class="gf m" x="510" y="146" text-anchor="end">FOCAL</text>
+
+      <rect class="b" x="572" y="132" width="138" height="62" rx="10"/>
+      <text class="t" x="586" y="157">DeepSeek API</text>
+      <text class="s" x="586" y="176">optional fallback</text>
+      <text class="g m" x="700" y="146" text-anchor="end">LLM</text>
+
+      <rect class="b" x="10" y="132" width="168" height="62" rx="10"/>
+      <text class="t" x="24" y="157">Answer check</text>
+      <text class="s" x="24" y="176">links · prices · source · leaks</text>
+      <text class="g m" x="168" y="146" text-anchor="end">CODE</text>
+
+      <line class="e" x1="374" y1="72" x2="374" y2="130" marker-end="url(#arr)"/>
+      <text class="el" x="382" y="106">message, thread_id</text>
+      <line class="e" x1="520" y1="163" x2="570" y2="163" marker-end="url(#arr)" marker-start="url(#arr)"/>
+
+      <!-- agent <-> check -->
+      <line class="e" x1="226" y1="154" x2="180" y2="154" marker-end="url(#arr)"/>
+      <text class="el" x="203" y="148" text-anchor="middle">draft</text>
+      <line class="ed" x1="180" y1="174" x2="226" y2="174" marker-end="url(#arr)"/>
+      <text class="el" x="203" y="189" text-anchor="middle">revise ≤2</text>
+      <!-- check -> app -->
+      <path class="e" d="M94,132 L94,100 L300,100 L300,74" marker-end="url(#arr)"/>
+      <text class="el" x="104" y="94">approved answer</text>
+
+      <!-- tool bus -->
+      <line class="e" x1="374" y1="194" x2="374" y2="232"/>
+      <line class="e" x1="105" y1="232" x2="615" y2="232"/>
+      <text class="el" x="382" y="222">tool calls (max 6 per question)</text>
+      <line class="e" x1="105" y1="232" x2="105" y2="262" marker-end="url(#arr)"/>
+      <line class="e" x1="358" y1="232" x2="358" y2="262" marker-end="url(#arr)"/>
+      <line class="e" x1="615" y1="232" x2="615" y2="262" marker-end="url(#arr)"/>
+
+      <!-- Row 3: tools -->
+      <rect class="b" x="10" y="264" width="190" height="62" rx="10"/>
+      <text class="t m" x="24" y="289" style="font-weight:500;font-size:12px">search_darglobal</text>
+      <text class="s" x="24" y="308">vector + BM25 → RRF → rerank</text>
+      <text class="g m" x="190" y="278" text-anchor="end">CODE</text>
+
+      <rect class="b" x="228" y="264" width="260" height="62" rx="10"/>
+      <text class="t m" x="242" y="289" style="font-weight:500;font-size:12px">search_wasalt_listings</text>
+      <text class="s" x="242" y="308">+ wasalt_market_stats (SQL, IQR filter)</text>
+      <text class="g m" x="478" y="278" text-anchor="end">CODE</text>
+
+      <rect class="b" x="520" y="264" width="190" height="62" rx="10"/>
+      <text class="t m" x="534" y="289" style="font-weight:500;font-size:12px">ask_user</text>
+      <text class="s" x="534" y="308">interrupt → buttons in the UI</text>
+      <text class="g m" x="700" y="278" text-anchor="end">CODE</text>
+
+      <!-- Row 4: data -->
+      <line class="e" x1="105" y1="326" x2="105" y2="372" marker-end="url(#arr)"/>
+      <line class="e" x1="358" y1="326" x2="358" y2="372" marker-end="url(#arr)"/>
+
+      <rect class="b" x="10" y="374" width="190" height="62" rx="10"/>
+      <text class="t" x="24" y="399">BM25 index</text>
+      <text class="s" x="24" y="418">in memory, built at startup</text>
+      <text class="g m" x="190" y="388" text-anchor="end">CODE</text>
+
+      <rect class="b" x="228" y="374" width="438" height="62" rx="10"/>
+      <text class="t" x="242" y="399">Postgres 16 + pgvector</text>
+      <text class="s" x="242" y="418">2,701 DarGlobal chunks · 1,172 Wasalt listings · chat memory</text>
+      <text class="g m" x="656" y="388" text-anchor="end">DB</text>
+      <line class="e" x1="200" y1="405" x2="226" y2="405"/>
+
+      <!-- legend -->
+      <g transform="translate(10,456)">
+        <rect x="0" y="-8" width="12" height="10" rx="3" fill="none" stroke="oklch(0.5 0.24 265)" stroke-width="1.4"/>
+        <text class="el" x="18" y="1">Focal</text>
+        <text class="g m" x="70" y="1">UI</text><text class="el" x="86" y="1">User-facing</text>
+        <text class="g m" x="168" y="1">CODE</text><text class="el" x="198" y="1">Code / service</text>
+        <text class="g m" x="290" y="1">LLM</text><text class="el" x="314" y="1">Model / cloud API</text>
+        <text class="g m" x="420" y="1">DB</text><text class="el" x="438" y="1">Data store</text>
+        <line class="ed" x1="516" y1="-3" x2="546" y2="-3"/><text class="el" x="552" y="1">revision loop</text>
+      </g>
+    </svg>
+  </div>
+  <figcaption>Request path. The answer check sits between the agent and the user: a draft only reaches the app after it
+    passes, otherwise it goes back for revision. The same <code>run_agent()</code> serves the chat UI and the API.</figcaption>
+</figure>
+
+<section class="col">
+  <h2>Data</h2>
+  <h3>DarGlobal</h3>
+  <p>481 URLs from the official sitemap, fetched as archived copies from the Wayback Machine because the live site
+    returns a CAPTCHA to scripts. Text comes from the CMS JSON embedded in each page, so there is no menu or footer
+    noise.</p>
+  <div class="ledger" style="margin-bottom:1rem">
+    <span class="v plain">396 + 5</span><span class="l">pages (archived, plus older fallback copies)</span>
+    <span class="v plain">40</span><span class="l">projects</span>
+    <span class="v plain">2,701</span><span class="l">text chunks: 1,868 blog · 318 general · 314 press · 201 project</span>
+    <span class="v plain">31 May 2026</span><span class="l">snapshot date of most pages</span>
+  </div>
+  <h3>Wasalt</h3>
+  <p>A listing snapshot taken on 19–20 Nov 2026 through the public sitemap, following robots.txt and llms.txt.
+    Advertiser contact details are not stored.</p>
+  <div class="ledger" style="margin-bottom:1rem">
+    <span class="v plain">1,307 → 1,172</span><span class="l">raw → clean listings</span>
+    <span class="v plain">135</span><span class="l">rejected: 91 duplicates, 38 implausible prices, 4 extreme for their type, 2 empty</span>
+    <span class="v plain">742 / 430</span><span class="l">for sale / for rent, across 10 cities</span>
+  </div>
+
+  <h2>Components</h2>
+  <div class="nodes">
+    <div class="node"><div class="node-h"><span class="mono">search_darglobal</span><span class="tag">TOOL</span></div>
+      <p>pgvector (bge-small) and an in-memory BM25 index, fused with reciprocal rank fusion (k&nbsp;=&nbsp;60), top&nbsp;20
+        to an optional reranker, top&nbsp;4 returned. Says <em>not found</em> instead of returning weak matches.</p></div>
+    <div class="node"><div class="node-h"><span class="mono">search_wasalt_listings</span><span class="tag">TOOL</span></div>
+      <p>Filtered SQL by city, buy or rent, type, bedrooms and budget. Returns rows with their wasalt.sa links.</p></div>
+    <div class="node"><div class="node-h"><span class="mono">wasalt_market_stats</span><span class="tag">TOOL</span></div>
+      <p>Median, p25–p75 range and price per m² after an IQR outlier filter, with the sample size so the answer can
+        say how solid the estimate is.</p></div>
+    <div class="node"><div class="node-h"><span class="mono">ask_user</span><span class="tag">TOOL</span></div>
+      <p>Clarifying question with 2–5 options. Pauses the graph with <code>interrupt</code>; the UI shows buttons.</p></div>
+    <div class="node"><div class="node-h"><span class="mono">AnswerCheckMiddleware</span><span class="tag focal">CORE</span></div>
+      <p>Runs after each model call without another LLM call. Checks links (seen in tool results, allowed host),
+        prices (match a number in the data, with locale-aware parsing) and that the source is named.</p></div>
+    <div class="node"><div class="node-h"><span class="mono">leak guard</span><span class="tag">SAFETY</span></div>
+      <p>Before an answer or a question reaches the user: n-gram overlap with the system prompt, internal tool names,
+        secret env names and key-like strings. A match is replaced with a polite refusal.</p></div>
+    <div class="node"><div class="node-h"><span class="mono">built-in middleware</span><span class="tag">LANGCHAIN</span></div>
+      <p>PII masking, summarisation of long threads, model and tool call limits, retries, optional model fallback,
+        and today's date added to the system prompt on every call.</p></div>
+  </div>
+</section>
+
+<figure class="media">
+  <div class="frame"><img class="window narrow" src="chat-compare.png" alt="The agent runs several DarGlobal searches and Wasalt queries to compare Rayana with Riyadh villas"></div>
+  <figcaption>A comparison question. The agent searches DarGlobal and queries Wasalt several times, then answers
+    with DarGlobal facts and Wasalt numbers in separate, labelled parts. It does not invent a Rayana price, because
+    DarGlobal does not publish one. The answer continues with a short “how they differ” section.</figcaption>
+</figure>
+
+<section class="col">
+  <h2>Technical challenges</h2>
+
+  <div class="challenge">
+    <h3>A source behind bot protection</h3>
+    <div class="row"><span class="k">Problem</span><p>darglobal.co.uk serves a CAPTCHA to scripts.</p></div>
+    <div class="row"><span class="k">Solution</span><p>Use the official sitemap as the list of pages and fetch each
+      one from the Wayback Machine, with a fallback to older copies. No bypass.</p></div>
+    <div class="row"><span class="k">Result</span><p>401 pages and 40 projects, with the snapshot date stored per
+      chunk so answers can say how fresh the data is.</p></div>
+  </div>
+
+  <div class="challenge">
+    <h3>Links you cannot trust</h3>
+    <div class="row"><span class="k">Problem</span><p>Tool results contain about 150 outside domains (blog
+      references, advertiser text). “The link was in the data” is not enough.</p></div>
+    <div class="row"><span class="k">Solution</span><p>A link must appear in this conversation's tool results
+      <em>and</em> point to an allowed host (darglobal.co.uk, its CDN, wasalt.sa).</p></div>
+    <div class="row"><span class="k">Result</span><p>0 answers with an invented or foreign link in the evaluation.</p></div>
+  </div>
+
+  <div class="challenge">
+    <h3>“SAR 36.700” is not 36.7</h3>
+    <div class="row"><span class="k">Problem</span><p>In Indonesian, a dot groups thousands. The price check read
+      SAR 36.700 as 36.7, found no such price in the data, and rejected a correct answer twice.</p></div>
+    <div class="row"><span class="k">Solution</span><p>Treat such a number as ambiguous: the parser returns both
+      readings (36,700 and 36.7), and the answer passes if either one is in the data. Unit tests cover both locales.</p></div>
+    <div class="row"><span class="k">Result</span><p>The Indonesian rent case passes without revisions.</p></div>
+  </div>
+
+  <div class="challenge">
+    <h3>A leak guard that cried wolf</h3>
+    <div class="row"><span class="k">Problem</span><p>The prompt-overlap check flagged normal answers because long
+      URLs share tokens with the prompt.</p></div>
+    <div class="row"><span class="k">Solution</span><p>Remove URLs before building n-grams; keep the other signals.</p></div>
+    <div class="row"><span class="k">Result</span><p>The guard blocked 0 legitimate answers in the evaluation, and the
+      unit tests still catch prompt leaks and injection hidden inside tool results.</p></div>
+  </div>
+
+  <div class="challenge">
+    <h3>The judge had no calendar</h3>
+    <div class="row"><span class="k">Problem</span><p>DeepSeek's thinking mode rejects a forced <code>tool_choice</code>,
+      and the LLM judge called a snapshot dated today “in the future”.</p></div>
+    <div class="row"><span class="k">Solution</span><p>JSON mode for the judge, and today's date in its prompt.</p></div>
+    <div class="row"><span class="k">Result</span><p>Judge and code evaluators agree on all 24 cases.</p></div>
+  </div>
+
+  <h2>Decisions backed by data</h2>
+  <p>Final answers are not token-streamed, because a draft must pass the check before anyone sees it. The cost is
+    waiting for the whole answer, so I measured how long that wait is per question type.</p>
+</section>
+
+<figure class="media">
+  <div class="frame tight">
+    <svg class="chart" viewBox="0 0 720 250" width="100%" role="img" aria-label="Bar chart of median times: first streamed event 1.35 seconds; final answer 1.2 seconds for declined questions, 4.28 seconds for answers from data, 8.65 seconds for multi-step questions">
+      <style>
+        .cl { font-size: 12px; fill: oklch(0.25 0.045 265); }
+        .cs { font-size: 10.5px; fill: oklch(0.52 0.03 265); }
+        .cv { font-size: 11.5px; font-weight: 500; fill: oklch(0.25 0.045 265); }
+        .ax { stroke: oklch(0.35 0.04 265 / 0.2); stroke-width: 1; }
+      </style>
+      <!-- scale: 0..10 s over x 250..690 => 44 px per s -->
+      <line class="ax" x1="250" y1="16" x2="250" y2="206"/>
+      <line class="ax" x1="470" y1="16" x2="470" y2="206" stroke-dasharray="2 3"/>
+      <line class="ax" x1="690" y1="16" x2="690" y2="206" stroke-dasharray="2 3"/>
+      <text class="cs m" x="250" y="224" text-anchor="middle">0 s</text>
+      <text class="cs m" x="470" y="224" text-anchor="middle">5 s</text>
+      <text class="cs m" x="690" y="224" text-anchor="middle">10 s</text>
+
+      <text class="cl" x="0" y="38">First streamed event</text>
+      <text class="cs" x="0" y="53">all 24 cases</text>
+      <rect x="250" y="28" width="59.4" height="22" rx="4" fill="oklch(0.5 0.24 265)"/>
+      <text class="cv m" x="316" y="44">1.35 s</text>
+
+      <text class="cl" x="0" y="86">Final: declined</text>
+      <text class="cs" x="0" y="101">9 cases, no tool needed</text>
+      <rect x="250" y="76" width="52.8" height="22" rx="4" fill="oklch(0.52 0.03 265)"/>
+      <text class="cv m" x="309" y="92">1.2 s</text>
+
+      <text class="cl" x="0" y="134">Final: answered from data</text>
+      <text class="cs" x="0" y="149">12 cases</text>
+      <rect x="250" y="124" width="188.3" height="22" rx="4" fill="oklch(0.52 0.03 265)"/>
+      <text class="cv m" x="445" y="140">4.28 s</text>
+
+      <text class="cl" x="0" y="182">Final: multi-step</text>
+      <text class="cs" x="0" y="197">3 cases (compare, ask back)</text>
+      <rect x="250" y="172" width="380.6" height="22" rx="4" fill="oklch(0.52 0.03 265)"/>
+      <text class="cv m" x="637" y="188">8.65 s</text>
+
+      <text class="cs" x="0" y="244">Median per group, local run on 20 Nov 2026 (DeepSeek, 24 evaluation cases).</text>
+    </svg>
+  </div>
+  <figcaption>The first sign of progress arrives in about 1.35 s for every type of question. The full answer for a
+    multi-step comparison takes about six times longer.</figcaption>
+</figure>
+
+<section class="col">
+  <p><strong>Conclusion: stream steps, not tokens.</strong> Showing each tool step as it starts (“Wasalt market
+    statistics: Jeddah · Villa · sale”) gives the user feedback in about a second without showing an unchecked draft.
+    On the live URL the first event arrives in about 1&nbsp;s.</p>
+  <p class="small">Limitation: three multi-step cases is a small group; the median says more about the shape than the exact
+    number.</p>
+
+  <h3>Other decisions</h3>
+  <ul class="lead">
+    <li><strong>One ReAct agent, no router.</strong> My first design classified the intent and routed each message
+      down one path. A single agent choosing its own tools handles mixed DarGlobal + Wasalt questions and follow-ups
+      without extra rules, and can search again when a result is empty.</li>
+    <li><strong>BM25 in memory, not Postgres full-text search.</strong> Postgres <code>ts_rank</code> has no IDF, so rare
+      project names like “Rayana” did not stand out. 2,701 chunks fit in memory easily.</li>
+    <li><strong>Code checks first, LLM judge second.</strong> Links, prices and sources are checked in code because it is
+      exact, fast and free; the LLM judge only scores correctness in evaluation.</li>
+    <li><strong>DeepSeek instead of a free OpenRouter model.</strong> The brief suggested a free OpenRouter model. Free
+      tiers were rate-limited too tightly for an agent that makes several calls per question, so the live demo uses
+      DeepSeek. The provider is set by environment variables; an OpenRouter model can be the main model or the
+      fallback without code changes.</li>
+  </ul>
+
+  <h2>Results in detail</h2>
+</section>
+
+<div class="wide-table">
+  <table>
+    <thead><tr><th>Metric</th><th>Result</th><th>Target</th><th>How it was checked</th></tr></thead>
+    <tbody>
+      <tr><td>Correct and sourced</td><td class="v">24/24</td><td class="t">≥ 80%</td><td class="how">Code evaluators + LLM judge on 24 cases</td></tr>
+      <tr><td>Invented link or price</td><td class="v">0</td><td class="t">0</td><td class="how">Code evaluator against tool results</td></tr>
+      <tr><td>Tool choice, sources, grounding, behaviour, content</td><td class="v">100%</td><td class="t">–</td><td class="how">One code evaluator each</td></tr>
+      <tr><td>Attack cases refused</td><td class="v">9/9</td><td class="t">–</td><td class="how">Injection, key requests, base64, fake price, Wasalt as DarGlobal, and more</td></tr>
+      <tr><td>Answers blocked by the leak guard</td><td class="v">0</td><td class="t">–</td><td class="how">The model refused on its own; the guard is the backstop</td></tr>
+      <tr><td>First streamed event (p50)</td><td class="v">1.35 s</td><td class="t">&lt; 5 s</td><td class="how">Local run; about 1 s on the live URL</td></tr>
+      <tr><td>Final answer (p50 / max)</td><td class="v">3.74 / 9.72 s</td><td class="t">–</td><td class="how">Same run</td></tr>
+      <tr><td>Unit tests</td><td class="v">132</td><td class="t">–</td><td class="how">Fake LLM, no API calls; run in CI on every push (plus 3 integration tests)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<section class="col">
+  <h2>Limitations and next steps</h2>
+  <ul class="lead">
+    <li><strong>Snapshot data.</strong> DarGlobal content is mostly from May 2026 and Wasalt from 19–20 Nov 2026. With
+      access to DarGlobal's CMS or a listings feed, the same tools could read live data.</li>
+    <li><strong>No DarGlobal prices.</strong> The site does not publish them, so the bot refers buyers to sales. A
+      price list or CRM connection would close that gap, and the answer check would cover it unchanged.</li>
+    <li><strong>One home server.</strong> The demo runs on a single self-hosted machine behind Tailscale Funnel, and
+      the rate limit lives in memory. Production would move limits to Redis and run more than one replica.</li>
+    <li><strong>Same model judges itself.</strong> The LLM judge uses DeepSeek too, which is why the code evaluators
+      are the main gate. A different judge model is the next step, along with Arabic evaluation cases.</li>
+  </ul>
+
+  <h2>Links</h2>
+  <div class="links">
+    <a href="https://rozi.tail7d5bfc.ts.net:10000/">Live demo: rozi.tail7d5bfc.ts.net:10000</a>
+    <a href="https://rozi.tail7d5bfc.ts.net:10000/case-study/">This case study online: rozi.tail7d5bfc.ts.net:10000/case-study</a>
+    <a href="https://github.com/rozi-bb/darglobal-property-assistant">Source: github.com/rozi-bb/darglobal-property-assistant</a>
+    <a href="https://github.com/rozi-bb/darglobal-property-assistant/blob/main/docs/eval-results.md">Evaluation results (all 24 cases with answers)</a>
+  </div>
+
+  <footer class="small">Rozi · Senior AI Engineer – Agentic Systems assignment, DarGlobal · Nov 2026. DarGlobal and
+    Wasalt content belongs to their owners and is used only to demonstrate the assistant.</footer>
+</section>
+
+</main>
+</body>
+</html>
