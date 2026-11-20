@@ -4,6 +4,8 @@ An AI chatbot that answers questions about **DarGlobal projects** and the **Saud
 listings). Built with LangGraph / LangChain v1, DeepSeek, FastAPI + Chainlit and Postgres (pgvector), shipped with
 Docker Compose.
 
+[![CI](https://github.com/rozi-bb/darglobal-property-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/rozi-bb/darglobal-property-assistant/actions/workflows/ci.yml)
+
 **Live demo: https://rozi.tail7d5bfc.ts.net:10000/**
 
 Try for example:
