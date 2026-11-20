@@ -2,7 +2,7 @@
 
 ## Project
 Chatbot LangGraph (Python 3.12) untuk tugas teknis DarGlobal: tanya-jawab soal proyek DarGlobal
-dan pasar properti Saudi (data Wasalt). Model gratis lewat OpenRouter, jalan di Docker, di-deploy ke URL publik.
+dan pasar properti Saudi (data Wasalt). LLM DeepSeek API (kompatibel OpenAI, provider bisa diganti lewat env), jalan di Docker, di-deploy ke URL publik.
 Konteks: `docs/prd.md` · Desain: `docs/architecture.md` · Task: `docs/roadmap.md`
 Latar belakang lamaran (lokal saja, tidak di-commit): `CONTEXT.md`
 

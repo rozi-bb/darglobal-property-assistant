@@ -16,14 +16,14 @@ Browser ──HTTPS──▶ Nginx/Tunnel ──▶ app (FastAPI, port 8000)
                                      ├── /            UI Chainlit (di-mount ke FastAPI)
                                      ├── /api/chat    endpoint chat (SSE streaming)
                                      ├── /health      cek server hidup
-                                     └── graph LangGraph ──▶ OpenRouter (model gratis)
+                                     └── graph LangGraph ──▶ DeepSeek API (LLM_BASE_URL)
                                               │
                                               └── checkpointer ──▶ db (Postgres 16)
 ```
 
 - **UI**: Chainlit di-mount ke FastAPI (`chainlit.utils.mount_chainlit`), satu proses, satu port.
   Handler Chainlit memanggil fungsi `stream_reply()` yang sama dengan endpoint `/api/chat`.
-- **API key** OpenRouter & LangSmith hanya di environment backend, tidak pernah ke browser.
+- **API key** LLM (DeepSeek) & LangSmith hanya di environment backend, tidak pernah ke browser.
 - **Tanpa login/paket/limit/pembayaran** (langkah 12, 14, 15 di-skip; lihat PRD #13).
 
 ## Agent (graph)
@@ -56,9 +56,15 @@ START ──▶ call_model ──(ada tool_calls)──▶ tools ──▶ call_
 - Di `langgraph dev`, persistence diurus server dev-nya sendiri (graph di-export tanpa checkpointer).
 
 ## Konfigurasi (env)
-`OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL`, `CHECKPOINT_DATABASE_URL`,
+`LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`, `CHECKPOINT_DATABASE_URL`,
 `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, (`LANGSMITH_ENDPOINT`).
 
 ## Deploy
 `docker compose up -d --build` di server: service `app` + `db` (volume `pgdata`), `restart: unless-stopped`.
 HTTPS lewat Nginx/Cloudflare Tunnel di depan port 8000. **(nanti: pilih host & domain)**
+
+## Keputusan: provider LLM
+**DeepSeek API langsung** (`https://api.deepseek.com`, model `deepseek-chat`), bukan model `:free` OpenRouter seperti di email HR.
+Alasan: rate limit model gratis OpenRouter terlalu kecil untuk testing, eval, dan penguji HR.
+`llm.py` memakai `ChatOpenAI` dengan `base_url`, jadi pindah ke OpenRouter (atau provider lain) cukup ganti
+`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` di `.env`.

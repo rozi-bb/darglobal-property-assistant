@@ -60,14 +60,14 @@ def test_chat_rejects_bad_input(no_database) -> None:
 
 def test_chat_llm_error_is_friendly(no_database, monkeypatch) -> None:
     def boom():
-        raise RuntimeError("OPENROUTER_API_KEY belum diisi")
+        raise RuntimeError("LLM_API_KEY belum diisi")
 
     monkeypatch.setattr("agent.nodes.get_llm", boom)
     with TestClient(app) as client:
         res = client.post("/api/chat", json={"message": "hi"})
     kinds = [e for e, _ in _events(res.text)]
     assert "error" in kinds and kinds[-1] == "end"
-    assert "OPENROUTER" not in res.text  # detail internal tidak bocor ke user
+    assert "LLM_API_KEY" not in res.text  # detail internal tidak bocor ke user
 
 
 def test_chainlit_ui_settings_load(no_database, monkeypatch) -> None:

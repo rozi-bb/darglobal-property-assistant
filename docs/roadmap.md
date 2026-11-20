@@ -9,10 +9,10 @@ Cara pakai tiap sesi: "Baca docs/roadmap.md, kerjakan task belum-tercentang beri
 
 ## Milestone 1: Agent polos (baseline)
 - [x] State `messages` (state.py)
-- [x] LLM OpenRouter (llm.py) + node `call_model` dengan system prompt (nodes.py)
+- [x] LLM via API kompatibel OpenAI, default DeepSeek (llm.py) + node `call_model` dengan system prompt (nodes.py)
 - [x] Graph START → call_model → END (graph.py)
 - [x] Unit test node pakai fake LLM
-- [ ] Isi `OPENROUTER_API_KEY` di `.env`, coba di `langgraph dev`, lihat trace di LangSmith
+- [ ] Isi `LLM_API_KEY` (DeepSeek) di `.env`, coba di `langgraph dev`, lihat trace di LangSmith
 
 ## Milestone 2: Kerangka produk
 - [x] FastAPI + `/health` + config dari env
@@ -33,7 +33,7 @@ Cara pakai tiap sesi: "Baca docs/roadmap.md, kerjakan task belum-tercentang beri
 ## Milestone 4: Eval & keamanan (nanti)
 - [ ] Dataset eval (PRD #15) di LangSmith + evaluator
 - [ ] Tes prompt injection & kebocoran system prompt
-- [ ] Rate limit sederhana per IP (lindungi kuota OpenRouter gratis)
+- [ ] Rate limit sederhana per IP (batasi biaya LLM)
 
 ## Milestone 5: Deploy (nanti)
 - [ ] Pilih host + domain + HTTPS

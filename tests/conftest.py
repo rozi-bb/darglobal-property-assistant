@@ -16,7 +16,7 @@ def anyio_backend():
 
 @pytest.fixture
 def fake_llm(monkeypatch: pytest.MonkeyPatch) -> Callable[..., GenericFakeChatModel]:
-    """Ganti LLM OpenRouter dengan fake model yang membalas teks tetap."""
+    """Ganti LLM asli dengan fake model yang membalas teks tetap."""
 
     def _install(*replies: str) -> GenericFakeChatModel:
         model = GenericFakeChatModel(messages=iter([AIMessage(r) for r in replies]))

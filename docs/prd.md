@@ -56,7 +56,7 @@ Selalu sebut sumber (DarGlobal / Wasalt) dan sertakan link bila ada. **(nanti: f
 ## 11. Fallback & Eskalasi (W)
 - Kalau data tidak ada: bilang tidak tahu, lalu arahkan ke https://darglobal.co.uk/get-in-touch.
 - Kalau pertanyaan ambigu (misal kota tidak disebut): bertanya balik.
-- Kalau LLM/OpenRouter gagal atau kena rate limit: tampilkan pesan error yang ramah, minta coba lagi.
+- Kalau LLM gagal atau kena rate limit: tampilkan pesan error yang ramah, minta coba lagi.
 
 ## 12. Kriteria Sukses (W)
 - ≥ 80% jawaban dataset eval dinilai benar & ber-sumber. **(nanti: angka final setelah eval)**
@@ -65,8 +65,8 @@ Selalu sebut sumber (DarGlobal / Wasalt) dan sertakan link bila ada. **(nanti: f
 - URL bisa diakses publik via HTTPS tanpa login.
 
 ## 13. Batasan (W)
-- Model: hanya model gratis OpenRouter (rate limit kecil; model bisa berubah/hilang).
-- Budget: Rp 0 untuk LLM. Hosting: server sendiri / VPS.
+- Model: DeepSeek API langsung (berbayar, murah). Email HR minta model gratis OpenRouter; sengaja tidak dipakai karena rate limit model gratis terlalu kecil untuk testing & eval. Alasan ditulis di email balasan. Bisa balik ke OpenRouter cukup lewat env.
+- Budget LLM: kecil (DeepSeek), pasang batas saldo di akun DeepSeek. Hosting: server sendiri / VPS.
 - Tenggat: 20 Nov 2026.
 - Tanpa login, paket, limit, atau pembayaran (sengaja di-skip untuk tugas ini).
 

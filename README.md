@@ -1,12 +1,12 @@
 # DarGlobal Property Assistant
 
 Chatbot LangGraph untuk tanya-jawab proyek DarGlobal dan pasar properti Saudi (iklan Wasalt).
-Model gratis via OpenRouter · FastAPI + UI Chainlit · memori chat di Postgres · Docker Compose.
+LLM: DeepSeek API (bisa diganti ke OpenRouter lewat env) · FastAPI + UI Chainlit · memori chat di Postgres · Docker Compose.
 
 ## Jalankan (Docker)
 
 ```bash
-cp .env.example .env   # isi OPENROUTER_API_KEY (dan LANGSMITH_API_KEY kalau mau tracing)
+cp .env.example .env   # isi LLM_API_KEY (key DeepSeek) (dan LANGSMITH_API_KEY kalau mau tracing)
 docker compose up -d --build
 ```
 
@@ -26,7 +26,7 @@ docker compose up -d db                               # Postgres saja
 uv run uvicorn server.main:app --reload --port 8000   # app di host
 uv run langgraph dev                                  # Studio UI untuk debug graph
 uv run pytest -q                                      # unit test (pakai fake LLM)
-uv run pytest -q -m integration                       # panggil OpenRouter asli
+uv run pytest -q -m integration                       # panggil DeepSeek asli
 ```
 
 ## Dokumen

@@ -76,6 +76,6 @@ dev = [
 [tool.pytest.ini_options]
 addopts = "-m 'not integration'"
 markers = [
-    "integration: memanggil API asli (OpenRouter); jalankan dengan -m integration",
+    "integration: memanggil API LLM asli (DeepSeek); jalankan dengan -m integration",
     "langsmith: test yang dilacak LangSmith",
 ]
