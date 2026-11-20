@@ -145,7 +145,7 @@ query + filter negara (ditulis agent)
 - Angka top 20 / top 4 / skor 0.5 adalah nilai awal, disetel lewat eval.
 
 ### Tools Wasalt
-- Tabel bersih dibaca pandas saat app start (1.307 baris, cukup di memori).
+- Tabel bersih dibaca pandas saat app start (1.172 baris, cukup di memori).
 - `wasalt_market_stats` membuang outlier (IQR) dan selalu melaporkan jumlah sampel `n`; `n < 5` ditandai "sampel kecil".
 - Wasalt tidak pakai RAG: pertanyaan harga/jumlah butuh angka pasti dari filter dan hitungan,
   bukan potongan teks yang "mirip".
@@ -165,8 +165,8 @@ Tidak ada bypass CAPTCHA/anti-bot; patuhi robots.txt & llms.txt Wasalt; kontak p
 
 | Sumber | Cara ambil | Bersihkan | Hasil (`data/processed/`) |
 |---|---|---|---|
-| DarGlobal | sitemap resmi (481 URL) → CDX Wayback → snapshot asli `id_` terbaru non-challenge (situs live kena CAPTCHA Imperva); ≥4,5 dtk/request | JSON → teks markdown per seksi CMS, buang media/menu/tombol; fallback scrape lama (Nov 2026) untuk halaman yang tidak terarsip | `darglobal_projects.jsonl` (terstruktur), `darglobal_chunks.jsonl` (RAG) |
-| Wasalt | snapshot lama 19–20 Nov 2026 (scrape ulang diblokir Cloudflare untuk browser otomatis; tidak dipaksa) | Pydantic; kota diseragamkan; angka string → numerik; sewa → per tahun; buang harga 0/di luar batas wajar/ekstrem (IQR log); dedup; luas tak masuk akal dikosongkan; `is_active` dari sitemap resmi | `wasalt_listings.jsonl`, `wasalt_rejected.jsonl` (+ alasan) |
+| DarGlobal | sitemap resmi (481 URL) → CDX Wayback → snapshot asli `id_` terbaru non-challenge (situs live kena CAPTCHA Imperva); ≥4,5 dtk/request | JSON → teks markdown per seksi CMS, buang media/menu/tombol; potongan < 150 karakter digabung ke potongan tetangga di halaman yang sama; fallback scrape lama (Nov 2026) untuk halaman yang tidak terarsip | `darglobal_projects.jsonl` (terstruktur), `darglobal_chunks.jsonl` (RAG) |
+| Wasalt | snapshot lama 19–20 Nov 2026 (scrape ulang diblokir Cloudflare untuk browser otomatis; tidak dipaksa) | Pydantic; kota diseragamkan; angka string → numerik; sewa → per tahun; buang harga 0/di luar batas wajar/ekstrem (IQR log); dedup; luas tak masuk akal dikosongkan; jumlah kamar tak masuk akal dikosongkan (apartemen > 10 kamar atau < 15 m²/kamar). Tanpa kolom status aktif: sitemap tersimpan tidak memuat iklan baru, jadi tidak andal | `wasalt_listings.jsonl`, `wasalt_rejected.jsonl` (+ alasan) |
 
 - Ringkasan jumlah per sumber/jenis: `data/processed/manifest.json`. Data mentah (`data/raw/`) tidak di-commit.
 - Tabel Postgres (DB yang sama dengan memori chat): `darglobal_projects`, `darglobal_chunks` (kolom `tsv` + index GIN

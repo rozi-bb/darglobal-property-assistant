@@ -168,3 +168,5 @@ cython_debug/
 .chainlit/translations/
 # Catatan lamaran pribadi (berisi detail rekrutmen), jangan ikut ter-push
 CONTEXT.md
+# Data mentah hasil scrape (besar; bisa dibuat ulang dengan script dataprep)
+data/raw/

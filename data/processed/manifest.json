@@ -1,0 +1,66 @@
+{
+ "darglobal": {
+  "source": "DarGlobal (darglobal.co.uk via Wayback Machine + snapshot Nov 2026)",
+  "pages_wayback": 396,
+  "pages_fallback_old_snapshot": 5,
+  "pages_by_kind": {
+   "general": 44,
+   "project": 38,
+   "press": 62,
+   "index": 17,
+   "blog": 235,
+   "project (fallback lama)": 3,
+   "general (fallback lama)": 2
+  },
+  "projects": 40,
+  "chunks": 2701,
+  "chunks_by_kind": {
+   "general": 318,
+   "project": 201,
+   "blog": 1868,
+   "press": 314
+  },
+  "captured_at": {
+   "2026-05-31": 2581,
+   "2025-10-06": 17,
+   "2025-04-23": 5,
+   "2025-07-30": 1,
+   "2025-03-20": 72,
+   "2025-06-24": 4,
+   "2026-07-26": 6,
+   "2025-11-03": 4,
+   "2026-11-19": 11
+  }
+ },
+ "wasalt": {
+  "source": "Wasalt.sa (snapshot 19–20 Nov 2026)",
+  "raw": 1307,
+  "clean": 1172,
+  "rejected": 135,
+  "rejected_by_reason": {
+   "duplikat": 91,
+   "sewa/tahun di luar batas wajar": 34,
+   "harga kosong/0": 2,
+   "harga jual di luar batas wajar": 4,
+   "harga ekstrem untuk rent Apartment": 3,
+   "harga ekstrem untuk sale Land": 1
+  },
+  "by_purpose": {
+   "sale": 742,
+   "rent": 430
+  },
+  "by_city": {
+   "Riyadh": 225,
+   "Jeddah": 182,
+   "Makkah": 129,
+   "Khobar": 124,
+   "Dammam": 120,
+   "Madinah": 119,
+   "Abha": 111,
+   "Taif": 105,
+   "Khamis Mushait": 29,
+   "Buraydah": 28
+  },
+  "bedrooms_cleared": 9
+ }
+}

@@ -34,11 +34,13 @@ Selalu sebut sumber (DarGlobal / Wasalt) dan sertakan link bila ada. **(nanti: f
 
 ## 7. Sumber Pengetahuan (O, wajib karena RAG)
 - **DarGlobal**: 396 halaman dari arsip Wayback (mayoritas snapshot 31 Mei 2026; situs live dilindungi CAPTCHA) +
-  5 halaman dari scrape lama 19 Nov 2026. Hasil: 40 proyek terstruktur (`darglobal_projects`) dan 3.078 chunk
-  (blog 2.185, press 319, umum 343, proyek 231) untuk RAG (`darglobal_chunks`). Tiap baris menyimpan `url` + `captured_at`.
+  5 halaman dari scrape lama 19 Nov 2026. Hasil: 40 proyek terstruktur (`darglobal_projects`) dan 2.701 chunk
+  (blog 1.868, press 314, umum 318, proyek 201) untuk RAG (`darglobal_chunks`). Tiap baris menyimpan `url` + `captured_at`.
+  Harga unit tidak tercantum di halaman proyek (`starting_price` kosong) → pertanyaan harga diarahkan ke sales.
 - **Wasalt**: 1.172 iklan bersih (jual 742, sewa 430; 10 kota) dari snapshot 19–20 Nov 2026 (`wasalt_listings`);
   135 dibuang (duplikat/harga tidak wajar) dengan alasan di `wasalt_rejected.jsonl`. Scrape ulang diblokir Cloudflare
-  untuk browser otomatis, jadi tidak dipaksa; hanya 38 iklan yang masih aktif di sitemap → bot mengarahkan user ke situs live.
+  untuk browser otomatis, jadi tidak dipaksa. Status aktif iklan tidak diketahui (sitemap yang tersimpan tidak memuat
+  iklan baru), jadi bot menyebut tanggal snapshot dan mengarahkan user cek ketersediaan di situs live.
 - Pipeline & aturan pembersihan: `docs/architecture.md` bagian "Pipeline data". Ringkasan angka: `data/processed/manifest.json`.
 
 ## 8. Kebijakan Memory (W) → checkpointer & `thread_id`

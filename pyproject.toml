@@ -29,11 +29,12 @@ requires = ["setuptools>=84.1.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["langgraph.templates.agent", "agent", "server"]
+packages = ["langgraph.templates.agent", "agent", "server", "dataprep"]
 [tool.setuptools.package-dir]
 "langgraph.templates.agent" = "src/agent"
 "agent" = "src/agent"
 "server" = "src/server"
+"dataprep" = "src/dataprep"
 
 
 [tool.setuptools.package-data]
@@ -67,8 +68,12 @@ convention = "google"
 dev = [
     "anyio>=4.14.2",
     "httpx>=0.28.1",
+    "ipykernel>=7.4.0",
     "langgraph-cli[inmem]>=0.4.14",
+    "markdownify>=1.2.4",
+    "matplotlib>=3.11.2",
     "mypy>=1.13.0",
+    "pandas>=3.1.1",
     "pytest>=9.0.3",
     "ruff>=0.8.2",
 ]
