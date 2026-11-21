@@ -113,6 +113,9 @@
 
   svg text { font-family: "Inter", system-ui, sans-serif; letter-spacing: 0.01em; }
   svg .m { font-family: "Geist Mono", ui-monospace, monospace; letter-spacing: 0; }
+  .frame.diagram { padding: 0.75rem; }
+  .diagram-container { width: 100%; overflow-x: auto; }
+  .diagram-container > svg { width: 100%; min-width: 720px; display: block; }
 
   @media (max-width: 640px) {
     .pair { grid-template-columns: 1fr; }
@@ -141,6 +144,8 @@
     .media.cover .frame { padding: 1.25rem 2.5rem; }
     .window.narrow { width: 62%; margin-inline: auto; }
     .frame.tight > svg { display: block; width: 92%; margin-inline: auto; }
+    .diagram-container { overflow-x: visible; }
+    .diagram-container > svg { min-width: 0; }
     .frame.tight { padding: 1.1rem 1.25rem; }
     h1 { margin-top: 1.25rem; }
     footer { break-inside: avoid; }
@@ -245,121 +250,146 @@
 </figure>
 
 <figure class="media">
-  <div class="frame tight">
-    <svg viewBox="0 0 720 470" width="100%" role="img" aria-label="Architecture: browser to FastAPI app, to the agent, which calls DeepSeek and four tools backed by Postgres; drafts pass the answer check before reaching the user">
+  <div class="frame diagram">
+   <div class="diagram-container">
+    <svg class="arch" viewBox="0 0 720 532" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="arch-title arch-desc">
+      <title id="arch-title">DarGlobal assistant request path</title>
+      <desc id="arch-desc">Architecture of the chatbot: the browser talks to a FastAPI app, which runs the agent; the agent calls DeepSeek and three tools backed by Postgres, and every draft answer must pass a code check before the app streams it to the user.</desc>
       <defs>
-        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M0,0 L10,5 L0,10 z" fill="oklch(0.43 0.04 265)"/>
-        </marker>
+        <marker id="arch-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#455066"/></marker>
+        <marker id="arch-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1d4ce9"/></marker>
       </defs>
       <style>
-        .b { fill: oklch(0.995 0.004 265); stroke: oklch(0.35 0.04 265 / 0.28); stroke-width: 1; }
-        .bf { fill: oklch(0.995 0.004 265); stroke: oklch(0.5 0.24 265); stroke-width: 1.6; }
-        .t { font-size: 13px; font-weight: 545; fill: oklch(0.25 0.045 265); }
-        .s { font-size: 10.5px; fill: oklch(0.43 0.04 265); }
-        .g { font-size: 9px; font-weight: 500; fill: oklch(0.52 0.03 265); }
-        .gf { font-size: 9px; font-weight: 500; fill: oklch(0.5 0.24 265); }
-        .e { stroke: oklch(0.43 0.04 265); stroke-width: 1.1; fill: none; }
-        .ed { stroke: oklch(0.43 0.04 265); stroke-width: 1.1; fill: none; stroke-dasharray: 4 3; }
-        .el { font-size: 10px; fill: oklch(0.43 0.04 265); }
+        .arch .n { font: 600 12px "Inter", system-ui, sans-serif; fill: #172137; letter-spacing: 0; }
+        .arch .s { font: 400 9px "Geist Mono", ui-monospace, monospace; fill: #455066; letter-spacing: 0; }
+        .arch .tg { font: 500 7px "Geist Mono", ui-monospace, monospace; letter-spacing: 0.08em; }
+        .arch .al { font: 400 8px "Geist Mono", ui-monospace, monospace; letter-spacing: 0.06em; }
+        .arch .le { font: 500 8px "Geist Mono", ui-monospace, monospace; fill: #455066; letter-spacing: 0.18em; }
+        .arch .lg { font: 400 9px "Inter", system-ui, sans-serif; fill: #455066; letter-spacing: 0; }
       </style>
 
-      <!-- Row 1 -->
-      <rect class="b" x="10" y="14" width="150" height="58" rx="10"/>
-      <text class="t" x="24" y="38">Browser</text>
-      <text class="s" x="24" y="56">Chainlit chat or SSE client</text>
-      <text class="g m" x="150" y="28" text-anchor="end">UI</text>
+      <rect width="720" height="532" rx="8" fill="#f3f7ff"/>
 
-      <rect class="b" x="228" y="14" width="292" height="58" rx="10"/>
-      <text class="t" x="242" y="38">FastAPI app</text>
-      <text class="s" x="242" y="56">/chat UI · /api/chat SSE · rate limit</text>
-      <text class="g m" x="510" y="28" text-anchor="end">CODE</text>
+      <!-- Arrows first (behind boxes) -->
+      <path d="M 200,60 H 264" stroke="#455066" stroke-width="1.2" fill="none" marker-end="url(#arch-arrow)"/>
+      <path d="M 264,84 H 200" stroke="#455066" stroke-width="1" fill="none" stroke-dasharray="4,3" marker-end="url(#arch-arrow)"/>
+      <path d="M 392,104 V 152" stroke="#455066" stroke-width="1.2" fill="none" marker-end="url(#arch-arrow)"/>
+      <path d="M 120,152 V 136 Q 120,128 128,128 H 320 Q 328,128 328,120 V 104" stroke="#1d4ce9" stroke-width="1.4" fill="none" marker-end="url(#arch-arrow-accent)"/>
+      <path d="M 264,172 H 200" stroke="#455066" stroke-width="1.2" fill="none" marker-end="url(#arch-arrow)"/>
+      <path d="M 200,196 H 264" stroke="#455066" stroke-width="1" fill="none" stroke-dasharray="4,3" marker-end="url(#arch-arrow)"/>
+      <path d="M 456,184 H 520" stroke="#455066" stroke-width="1.2" fill="none" marker-end="url(#arch-arrow)"/>
+      <path d="M 312,216 V 232 Q 312,240 304,240 H 128 Q 120,240 120,248 V 264" stroke="#455066" stroke-width="1.2" fill="none" marker-end="url(#arch-arrow)"/>
+      <path d="M 360,216 V 264" stroke="#455066" stroke-width="1.2" fill="none" marker-end="url(#arch-arrow)"/>
+      <path d="M 408,216 V 232 Q 408,240 416,240 H 592 Q 600,240 600,248 V 264" stroke="#455066" stroke-width="1.2" fill="none" marker-end="url(#arch-arrow)"/>
+      <path d="M 120,328 V 376" stroke="#455066" stroke-width="1.2" fill="none" marker-end="url(#arch-arrow)"/>
+      <path d="M 360,328 V 376" stroke="#455066" stroke-width="1.2" fill="none" marker-end="url(#arch-arrow)"/>
 
-      <line class="e" x1="160" y1="43" x2="226" y2="43" marker-end="url(#arr)" marker-start="url(#arr)"/>
-      <text class="el" x="193" y="36" text-anchor="middle">HTTPS</text>
+      <!-- Arrow labels (masked, 6–10px off the stroke) -->
+      <rect x="210" y="42" width="44" height="12" rx="2" fill="#f3f7ff"/>
+      <text class="al" x="232" y="51" fill="#60697b" text-anchor="middle">MESSAGE</text>
+      <rect x="212" y="90" width="40" height="12" rx="2" fill="#f3f7ff"/>
+      <text class="al" x="232" y="99" fill="#60697b" text-anchor="middle">STREAM</text>
+      <rect x="400" y="122" width="64" height="12" rx="2" fill="#f3f7ff"/>
+      <text class="al" x="432" y="131" fill="#60697b" text-anchor="middle">RUN_AGENT()</text>
+      <rect x="208" y="108" width="48" height="12" rx="2" fill="#f3f7ff"/>
+      <text class="al" x="232" y="117" fill="#1d4ce9" text-anchor="middle">APPROVED</text>
+      <rect x="216" y="154" width="32" height="12" rx="2" fill="#f3f7ff"/>
+      <text class="al" x="232" y="163" fill="#60697b" text-anchor="middle">DRAFT</text>
+      <rect x="206" y="202" width="52" height="12" rx="2" fill="#f3f7ff"/>
+      <text class="al" x="232" y="211" fill="#60697b" text-anchor="middle">REVISE ≤2</text>
+      <rect x="464" y="164" width="48" height="12" rx="2" fill="#f3f7ff"/>
+      <text class="al" x="488" y="173" fill="#60697b" text-anchor="middle">LLM CALL</text>
 
-      <!-- Row 2 -->
-      <rect class="bf" x="228" y="132" width="292" height="62" rx="10"/>
-      <text class="t" x="242" y="157">Agent · create_agent</text>
-      <text class="s" x="242" y="176">ReAct loop · call limits · retry · PII · summary</text>
-      <text class="gf m" x="510" y="146" text-anchor="end">FOCAL</text>
+      <!-- Nodes -->
+      <!-- Browser -->
+      <rect x="40" y="40" width="160" height="64" rx="6" fill="#f3f7ff"/>
+      <rect x="40" y="40" width="160" height="64" rx="6" fill="rgba(69,80,102,0.10)" stroke="#60697b" stroke-width="1"/>
+      <rect x="48" y="46" width="28" height="12" rx="2" fill="transparent" stroke="rgba(96,105,123,0.40)" stroke-width="0.8"/>
+      <text class="tg" x="62" y="55" fill="#60697b" text-anchor="middle">USER</text>
+      <text class="n" x="120" y="74" text-anchor="middle">Browser</text>
+      <text class="s" x="120" y="90" text-anchor="middle">Chainlit UI · SSE</text>
+      <!-- FastAPI app -->
+      <rect x="264" y="40" width="192" height="64" rx="6" fill="#f3f7ff"/>
+      <rect x="264" y="40" width="192" height="64" rx="6" fill="#ffffff" stroke="#172137" stroke-width="1"/>
+      <rect x="272" y="46" width="24" height="12" rx="2" fill="transparent" stroke="rgba(23,33,55,0.40)" stroke-width="0.8"/>
+      <text class="tg" x="284" y="55" fill="#172137" text-anchor="middle">API</text>
+      <text class="n" x="360" y="74" text-anchor="middle">FastAPI app</text>
+      <text class="s" x="360" y="90" text-anchor="middle">/chat · /api/chat · rate limit</text>
+      <!-- Answer check -->
+      <rect x="40" y="152" width="160" height="64" rx="6" fill="#f3f7ff"/>
+      <rect x="40" y="152" width="160" height="64" rx="6" fill="rgba(29,76,233,0.08)" stroke="#1d4ce9" stroke-width="1"/>
+      <rect x="48" y="158" width="32" height="12" rx="2" fill="transparent" stroke="rgba(29,76,233,0.50)" stroke-width="0.8"/>
+      <text class="tg" x="64" y="167" fill="#1d4ce9" text-anchor="middle">CHECK</text>
+      <text class="n" x="120" y="186" text-anchor="middle">Answer check</text>
+      <text class="s" x="120" y="202" text-anchor="middle">links · prices · leaks</text>
+      <!-- Agent -->
+      <rect x="264" y="152" width="192" height="64" rx="6" fill="#f3f7ff"/>
+      <rect x="264" y="152" width="192" height="64" rx="6" fill="#ffffff" stroke="#172137" stroke-width="1"/>
+      <rect x="272" y="158" width="32" height="12" rx="2" fill="transparent" stroke="rgba(23,33,55,0.40)" stroke-width="0.8"/>
+      <text class="tg" x="288" y="167" fill="#172137" text-anchor="middle">AGENT</text>
+      <text class="n" x="360" y="186" text-anchor="middle">Agent</text>
+      <text class="s" x="360" y="202" text-anchor="middle">ReAct loop · ≤6 tool calls</text>
+      <!-- DeepSeek API -->
+      <rect x="520" y="152" width="160" height="64" rx="6" fill="#f3f7ff"/>
+      <rect x="520" y="152" width="160" height="64" rx="6" fill="rgba(23,33,55,0.03)" stroke="rgba(23,33,55,0.30)" stroke-width="1"/>
+      <rect x="528" y="158" width="24" height="12" rx="2" fill="transparent" stroke="rgba(23,33,55,0.22)" stroke-width="0.8"/>
+      <text class="tg" x="540" y="167" fill="#60697b" text-anchor="middle">LLM</text>
+      <text class="n" x="600" y="186" text-anchor="middle">DeepSeek API</text>
+      <text class="s" x="600" y="202" text-anchor="middle">OpenAI-compatible</text>
+      <!-- DarGlobal search -->
+      <rect x="40" y="264" width="160" height="64" rx="6" fill="#f3f7ff"/>
+      <rect x="40" y="264" width="160" height="64" rx="6" fill="#ffffff" stroke="#172137" stroke-width="1"/>
+      <rect x="48" y="270" width="28" height="12" rx="2" fill="transparent" stroke="rgba(23,33,55,0.40)" stroke-width="0.8"/>
+      <text class="tg" x="62" y="279" fill="#172137" text-anchor="middle">TOOL</text>
+      <text class="n" x="120" y="298" text-anchor="middle">DarGlobal search</text>
+      <text class="s" x="120" y="314" text-anchor="middle">pgvector + BM25 → RRF</text>
+      <!-- Wasalt listings &amp; stats -->
+      <rect x="264" y="264" width="192" height="64" rx="6" fill="#f3f7ff"/>
+      <rect x="264" y="264" width="192" height="64" rx="6" fill="#ffffff" stroke="#172137" stroke-width="1"/>
+      <rect x="272" y="270" width="28" height="12" rx="2" fill="transparent" stroke="rgba(23,33,55,0.40)" stroke-width="0.8"/>
+      <text class="tg" x="286" y="279" fill="#172137" text-anchor="middle">TOOL</text>
+      <text class="n" x="360" y="298" text-anchor="middle">Wasalt listings &amp; stats</text>
+      <text class="s" x="360" y="314" text-anchor="middle">SQL filters · IQR median</text>
+      <!-- Clarifying question -->
+      <rect x="520" y="264" width="160" height="64" rx="6" fill="#f3f7ff"/>
+      <rect x="520" y="264" width="160" height="64" rx="6" fill="#ffffff" stroke="#172137" stroke-width="1"/>
+      <rect x="528" y="270" width="28" height="12" rx="2" fill="transparent" stroke="rgba(23,33,55,0.40)" stroke-width="0.8"/>
+      <text class="tg" x="542" y="279" fill="#172137" text-anchor="middle">TOOL</text>
+      <text class="n" x="600" y="298" text-anchor="middle">Clarifying question</text>
+      <text class="s" x="600" y="314" text-anchor="middle">interrupt → buttons</text>
+      <!-- Postgres 16 + pgvector -->
+      <rect x="40" y="376" width="416" height="64" rx="6" fill="#f3f7ff"/>
+      <rect x="40" y="376" width="416" height="64" rx="6" fill="rgba(23,33,55,0.05)" stroke="#455066" stroke-width="1"/>
+      <rect x="48" y="382" width="24" height="12" rx="2" fill="transparent" stroke="rgba(69,80,102,0.50)" stroke-width="0.8"/>
+      <text class="tg" x="60" y="391" fill="#455066" text-anchor="middle">DB</text>
+      <text class="n" x="248" y="410" text-anchor="middle">Postgres 16 + pgvector</text>
+      <text class="s" x="248" y="426" text-anchor="middle">2,701 chunks · 1,172 listings · chat memory</text>
 
-      <rect class="b" x="572" y="132" width="138" height="62" rx="10"/>
-      <text class="t" x="586" y="157">DeepSeek API</text>
-      <text class="s" x="586" y="176">optional fallback</text>
-      <text class="g m" x="700" y="146" text-anchor="end">LLM</text>
-
-      <rect class="b" x="10" y="132" width="168" height="62" rx="10"/>
-      <text class="t" x="24" y="157">Answer check</text>
-      <text class="s" x="24" y="176">links · prices · source · leaks</text>
-      <text class="g m" x="168" y="146" text-anchor="end">CODE</text>
-
-      <line class="e" x1="374" y1="72" x2="374" y2="130" marker-end="url(#arr)"/>
-      <text class="el" x="382" y="106">message, thread_id</text>
-      <line class="e" x1="520" y1="163" x2="570" y2="163" marker-end="url(#arr)" marker-start="url(#arr)"/>
-
-      <!-- agent <-> check -->
-      <line class="e" x1="226" y1="154" x2="180" y2="154" marker-end="url(#arr)"/>
-      <text class="el" x="203" y="148" text-anchor="middle">draft</text>
-      <line class="ed" x1="180" y1="174" x2="226" y2="174" marker-end="url(#arr)"/>
-      <text class="el" x="203" y="189" text-anchor="middle">revise ≤2</text>
-      <!-- check -> app -->
-      <path class="e" d="M94,132 L94,100 L300,100 L300,74" marker-end="url(#arr)"/>
-      <text class="el" x="104" y="94">approved answer</text>
-
-      <!-- tool bus -->
-      <line class="e" x1="374" y1="194" x2="374" y2="232"/>
-      <line class="e" x1="105" y1="232" x2="615" y2="232"/>
-      <text class="el" x="382" y="222">tool calls (max 6 per question)</text>
-      <line class="e" x1="105" y1="232" x2="105" y2="262" marker-end="url(#arr)"/>
-      <line class="e" x1="358" y1="232" x2="358" y2="262" marker-end="url(#arr)"/>
-      <line class="e" x1="615" y1="232" x2="615" y2="262" marker-end="url(#arr)"/>
-
-      <!-- Row 3: tools -->
-      <rect class="b" x="10" y="264" width="190" height="62" rx="10"/>
-      <text class="t m" x="24" y="289" style="font-weight:500;font-size:12px">search_darglobal</text>
-      <text class="s" x="24" y="308">vector + BM25 → RRF → rerank</text>
-      <text class="g m" x="190" y="278" text-anchor="end">CODE</text>
-
-      <rect class="b" x="228" y="264" width="260" height="62" rx="10"/>
-      <text class="t m" x="242" y="289" style="font-weight:500;font-size:12px">search_wasalt_listings</text>
-      <text class="s" x="242" y="308">+ wasalt_market_stats (SQL, IQR filter)</text>
-      <text class="g m" x="478" y="278" text-anchor="end">CODE</text>
-
-      <rect class="b" x="520" y="264" width="190" height="62" rx="10"/>
-      <text class="t m" x="534" y="289" style="font-weight:500;font-size:12px">ask_user</text>
-      <text class="s" x="534" y="308">interrupt → buttons in the UI</text>
-      <text class="g m" x="700" y="278" text-anchor="end">CODE</text>
-
-      <!-- Row 4: data -->
-      <line class="e" x1="105" y1="326" x2="105" y2="372" marker-end="url(#arr)"/>
-      <line class="e" x1="358" y1="326" x2="358" y2="372" marker-end="url(#arr)"/>
-
-      <rect class="b" x="10" y="374" width="190" height="62" rx="10"/>
-      <text class="t" x="24" y="399">BM25 index</text>
-      <text class="s" x="24" y="418">in memory, built at startup</text>
-      <text class="g m" x="190" y="388" text-anchor="end">CODE</text>
-
-      <rect class="b" x="228" y="374" width="438" height="62" rx="10"/>
-      <text class="t" x="242" y="399">Postgres 16 + pgvector</text>
-      <text class="s" x="242" y="418">2,701 DarGlobal chunks · 1,172 Wasalt listings · chat memory</text>
-      <text class="g m" x="656" y="388" text-anchor="end">DB</text>
-      <line class="e" x1="200" y1="405" x2="226" y2="405"/>
-
-      <!-- legend -->
-      <g transform="translate(10,456)">
-        <rect x="0" y="-8" width="12" height="10" rx="3" fill="none" stroke="oklch(0.5 0.24 265)" stroke-width="1.4"/>
-        <text class="el" x="18" y="1">Focal</text>
-        <text class="g m" x="70" y="1">UI</text><text class="el" x="86" y="1">User-facing</text>
-        <text class="g m" x="168" y="1">CODE</text><text class="el" x="198" y="1">Code / service</text>
-        <text class="g m" x="290" y="1">LLM</text><text class="el" x="314" y="1">Model / cloud API</text>
-        <text class="g m" x="420" y="1">DB</text><text class="el" x="438" y="1">Data store</text>
-        <line class="ed" x1="516" y1="-3" x2="546" y2="-3"/><text class="el" x="552" y="1">revision loop</text>
-      </g>
+      <!-- Legend strip -->
+      <line x1="40" y1="468" x2="680" y2="468" stroke="rgba(23,33,55,0.10)" stroke-width="0.8"/>
+      <text class="le" x="40" y="486">LEGEND</text>
+      <rect x="40" y="500" width="14" height="10" rx="2" fill="rgba(29,76,233,0.08)" stroke="#1d4ce9" stroke-width="1"/>
+      <text class="lg" x="60" y="508">Focal</text>
+      <rect x="104" y="500" width="14" height="10" rx="2" fill="#ffffff" stroke="#172137" stroke-width="1"/>
+      <text class="lg" x="124" y="508">Service</text>
+      <rect x="180" y="500" width="14" height="10" rx="2" fill="rgba(23,33,55,0.05)" stroke="#455066" stroke-width="1"/>
+      <text class="lg" x="200" y="508">Store</text>
+      <rect x="244" y="500" width="14" height="10" rx="2" fill="rgba(23,33,55,0.03)" stroke="rgba(23,33,55,0.30)" stroke-width="1"/>
+      <text class="lg" x="264" y="508">External</text>
+      <rect x="324" y="500" width="14" height="10" rx="2" fill="rgba(69,80,102,0.10)" stroke="#60697b" stroke-width="1"/>
+      <text class="lg" x="344" y="508">User</text>
+      <line x1="388" y1="505" x2="412" y2="505" stroke="#455066" stroke-width="1.2" marker-end="url(#arch-arrow)"/>
+      <text class="lg" x="418" y="508">Call</text>
+      <line x1="460" y1="505" x2="484" y2="505" stroke="#1d4ce9" stroke-width="1.4" marker-end="url(#arch-arrow-accent)"/>
+      <text class="lg" x="490" y="508">Approved answer</text>
+      <line x1="580" y1="505" x2="604" y2="505" stroke="#455066" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arch-arrow)"/>
+      <text class="lg" x="610" y="508">Return / revise</text>
     </svg>
+   </div>
   </div>
-  <figcaption>Request path. The answer check sits between the agent and the user: a draft only reaches the app after it
-    passes, otherwise it goes back for revision. The same <code>run_agent()</code> serves the chat UI and the API.</figcaption>
+  <figcaption>Request path. Every draft from the agent goes to the answer check. Only an approved answer reaches the app
+    and streams to the browser; otherwise it goes back for revision, at most twice. The same <code>run_agent()</code>
+    serves the chat UI and the API.</figcaption>
 </figure>
 
 <section class="col">
