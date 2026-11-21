@@ -11,11 +11,29 @@
 <meta property="og:url" content="https://rozi.tail7d5bfc.ts.net:10000/case-study/">
 <meta property="og:image" content="https://rozi.tail7d5bfc.ts.net:10000/chat/public/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/geist-mono-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+  /* Fonts (Inter, Geist Mono; OFL), tokens and type ramp. */
+  @font-face { font-family: 'Inter Variable'; font-style: normal; font-display: block; font-weight: 100 900;
+    src: url('fonts/inter-latin-ext-wght-normal.woff2') format('woff2-variations');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
+      U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  @font-face { font-family: 'Inter Variable'; font-style: normal; font-display: block; font-weight: 100 900;
+    src: url('fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+      U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'Geist Mono Variable'; font-style: normal; font-display: block; font-weight: 100 900;
+    src: url('fonts/geist-mono-latin-ext-wght-normal.woff2') format('woff2-variations');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
+      U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  @font-face { font-family: 'Geist Mono Variable'; font-style: normal; font-display: block; font-weight: 100 900;
+    src: url('fonts/geist-mono-latin-wght-normal.woff2') format('woff2-variations');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+      U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
   :root {
+    color-scheme: light;
     --ground: oklch(0.975 0.012 265);
     --ground-raised: oklch(0.995 0.004 265);
     --ink: oklch(0.25 0.045 265);
@@ -25,150 +43,265 @@
     --panel: oklch(0.92 0.016 265);
     --rule: oklch(0.35 0.04 265 / 0.2);
     --pass: oklch(0.52 0.13 160);
-    --col: 420px;
+    --shadow-window: 0 1px 2px oklch(0.25 0.03 265 / 0.08), 0 18px 40px -12px oklch(0.25 0.04 265 / 0.24);
+    --font-body: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+    --weight-body: 380;
+    --weight-strong: 545;
+    --step--2: 0.8125rem;
+    --step--1: 0.9297rem;
+    --step-0: 1.0625rem;
+    --step-h2: 1.1953rem;
+    --column: 26.25rem;
     --media: 46.75rem;
-    --fs: 17px;
+    --page-pad: 1.6rem;
+    --page-top: 4.25rem;
   }
-  * { box-sizing: border-box; }
-  html { background: var(--ground); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @media (min-width: 42.5rem) { :root { --page-pad: 2.65rem; --page-top: 2.65rem; } }
+  @media (min-width: 68rem) { :root { --page-pad: 6.25rem; --page-top: 6.25rem; } }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { background: var(--ground); -webkit-text-size-adjust: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body {
     margin: 0; background: var(--ground); color: var(--ink);
-    font-family: "Inter", system-ui, sans-serif; font-weight: 380; font-size: var(--fs);
-    letter-spacing: 0.01em; line-height: 1.7;
-    font-feature-settings: "cv11", "ss01";
+    font-family: var(--font-body); font-size: var(--step-0); font-weight: var(--weight-body);
+    line-height: 1.625; letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
   }
-  a { color: var(--link); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  strong, b { font-weight: 545; }
-  .col { width: min(var(--col), 100% - 32px); margin-inline: auto; }
-  .media { width: min(var(--media), 100% - 32px); margin: 2.25rem auto; }
-  main { padding: 3.5rem 0 4rem; }
+  ::selection { background: oklch(0.5 0.24 265 / 0.16); color: var(--ink); }
+  h1, h2, h3, p, ul, ol, dl, dd, figure { margin: 0; }
+  h1, h2, h3, strong, b { font-weight: var(--weight-strong); }
+  a { color: var(--link); text-decoration-line: underline; text-decoration-color: transparent;
+    text-decoration-thickness: 1px; text-underline-offset: 3px; transition: color 0.4s cubic-bezier(0.2, 0, 0, 1); }
+  @media (hover: hover) { a:hover { color: var(--ink); } }
+  :focus-visible { outline: 2px solid var(--link); outline-offset: 3px; border-radius: 4px; }
 
-  .topline { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 13px; color: var(--ink-faint); }
-  .topline .sep { flex: 1; }
-  h1 { font-size: 1.3em; font-weight: 545; line-height: 1.35; letter-spacing: 0; margin: 2.5rem 0 0.4rem; }
-  .kicker { color: var(--ink-muted); margin: 0; }
-  h2 { font-size: 19.1px; font-weight: 380; margin: 3.25rem 0 0.75rem; letter-spacing: 0.005em; }
-  h3 { font-size: 1em; font-weight: 545; margin: 1.75rem 0 0.25rem; }
-  p { margin: 0 0 1rem; }
-  .muted { color: var(--ink-muted); }
-  .small { font-size: 13px; color: var(--ink-faint); line-height: 1.55; }
-  .mono, code { font-family: "Geist Mono", ui-monospace, monospace; font-weight: 500; font-size: 0.875em;
-    font-variant-numeric: tabular-nums; letter-spacing: 0; }
-  code { font-weight: 450; color: var(--ink); }
+  /* Prism light at the top; content paints above it. */
+  .halo {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 30rem;
+    overflow: hidden;
+    pointer-events: none;
+  }
 
-  /* Fact sheet under the title */
-  .facts { margin: 1.75rem 0 0; display: grid; gap: 1.1rem; }
-  .facts dt { font-size: 13px; color: var(--ink-faint); }
-  .facts dd { margin: 0; }
-  .ledger { display: grid; grid-template-columns: max-content 1fr; gap: 0.15rem 0.9rem; align-items: baseline; }
-  .ledger .v { font-family: "Geist Mono", ui-monospace, monospace; font-weight: 500; font-size: 14.9px;
-    font-variant-numeric: tabular-nums; color: var(--pass); letter-spacing: 0; }
+  .halo-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Still fallback for browsers without WebGL. */
+
+  .halo-gl .halo-spectrum,
+  .halo-gl .halo-rays {
+    display: none;
+  }
+
+  .halo-spectrum,
+  .halo-rays {
+    position: absolute;
+    left: 50%;
+    top: -2.5rem;
+    width: max(140vw, 90rem);
+    aspect-ratio: 1;
+    translate: -50% 0;
+    transform-origin: 50% 0%;
+  }
+
+  .halo-spectrum {
+    background: conic-gradient(
+      from 92deg at 50% 0%,
+      transparent 0deg,
+      oklch(0.8 0.08 285 / 0.35) 14deg,
+      oklch(0.78 0.11 295 / 0.55) 50deg,
+      oklch(0.8 0.12 350 / 0.7) 74deg,
+      oklch(0.9 0.1 75 / 0.8) 82deg,
+      oklch(0.95 0.08 95 / 0.85) 88deg,
+      oklch(0.86 0.1 200 / 0.75) 94deg,
+      oklch(0.8 0.11 245 / 0.65) 102deg,
+      oklch(0.84 0.08 190 / 0.5) 126deg,
+      oklch(0.86 0.08 135 / 0.4) 162deg,
+      transparent 176deg
+    );
+    filter: blur(36px);
+    -webkit-mask-image: radial-gradient(48% 18rem at 50% 0%, black 30%, transparent);
+    mask-image: radial-gradient(48% 18rem at 50% 0%, black 30%, transparent);
+  }
+
+  .halo-rays {
+    background: repeating-conic-gradient(
+      from 92deg at 50% 0%,
+      oklch(0.55 0.06 265 / 0.07) 0deg 0.4deg,
+      transparent 0.4deg 1.9deg
+    );
+    filter: blur(1.5px);
+    -webkit-mask-image: conic-gradient(
+        from 92deg at 50% 0%,
+        transparent 60deg,
+        black 80deg 96deg,
+        transparent 116deg
+      ),
+      radial-gradient(18% 16rem at 50% 0%, transparent 30%, black 50%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image: conic-gradient(from 92deg at 50% 0%, transparent 60deg, black 80deg 96deg, transparent 116deg),
+      radial-gradient(18% 16rem at 50% 0%, transparent 30%, black 50%, transparent);
+    mask-composite: intersect;
+  }
+  main { position: relative; max-width: 90rem; margin-inline: auto; padding: var(--page-top) var(--page-pad) 4.5rem; }
+  .col { max-width: var(--column); margin-inline: auto; }
+
+  /* Header row: links and reading time */
+  .meta { display: flex; justify-content: space-between; gap: 1rem;
+    font-size: var(--step--1); line-height: 1.43; color: var(--ink); }
+  .meta-links { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+  .icon-link { display: inline-flex; align-items: center; gap: 0.4em; }
+  .icon-link svg { width: 0.9em; height: 0.9em; flex: none; }
+
+  /* Story text: justified, hyphenated, headings left */
+  .col { text-align: justify; hyphens: auto; }
+  h1, h2, h3 { text-align: left; }
+  code, .mono { hyphens: none; }
+  header.col { margin-top: 1rem; }
+  h1 { font-size: var(--step-0); line-height: 1.375; }
+  h2 { font-size: var(--step-h2); font-weight: var(--weight-body); line-height: 1.75; color: var(--ink); }
+  h3 { font-size: var(--step-0); line-height: 1.5; color: var(--ink); }
+  .col > * + * { margin-top: 1.375rem; }
+  .col > h2:not(:first-child) { margin-top: 1.875rem; }
+  .col > h3 + * { margin-top: 0.4rem; }
+  .col + section.col { margin-top: 1.875rem; }
+  .col p { color: var(--ink-muted); line-height: 1.7; }
+  .summary { color: var(--ink-muted); line-height: 1.7; }
+  .small { font-size: var(--step--2); color: var(--ink-faint); line-height: 1.55; }
+  .mono, code { font-family: var(--font-mono); font-size: 0.875em; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  code { color: var(--ink); }
+
+  /* TL;DR facts and key results */
+  .facts { display: grid; gap: 0.55rem; font-size: var(--step--1); line-height: 1.5; }
+  .facts > div { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.85rem; }
+  .facts dt { color: var(--ink-faint); }
+  .facts dd { color: var(--ink-muted); }
+  .ledger { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 0.85rem; align-items: baseline;
+    font-size: var(--step--1); line-height: 1.45; }
+  .ledger .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+    font-weight: 500; color: var(--ink); }
   .ledger .v.plain { color: var(--ink); }
   .ledger .l { color: var(--ink-muted); }
 
-  ul.lead { padding-left: 1.1rem; margin: 0 0 1rem; }
-  ul.lead li { margin-bottom: 0.55rem; }
-  ul.lead li::marker { color: var(--ink-faint); }
+  /* Bullets: a short dash */
+  ul.lead { display: grid; gap: 0.9rem; padding: 0; list-style: none; color: var(--ink-muted); line-height: 1.7; }
+  ul.lead li { position: relative; padding-left: 1.25rem; }
+  ul.lead li::before { content: ''; position: absolute; left: 0; top: 0.82em; width: 0.4rem; height: 1px; background: var(--ink-faint); }
+  ul.lead strong { color: var(--ink); }
 
-  .callout { background: var(--ground-raised); border: 1px solid var(--rule); border-radius: 0.75rem;
-    padding: 0.9rem 1.1rem; margin: 0 0 1.25rem; }
+  /* Highlighted note */
+  .callout { padding: 1rem 1.15rem; border: 1px solid oklch(0.5 0.24 265 / 0.22); border-radius: 1rem;
+    background: oklch(0.5 0.24 265 / 0.06); color: var(--ink-muted); font-size: var(--step--1); line-height: 1.6; }
 
-  /* Media frames */
-  figure { margin: 0; break-inside: avoid; }
-  .frame { background: var(--panel); border-radius: 1.25rem; padding: 2rem; }
-  .frame.tight { padding: 1.5rem; }
-  .window { display: block; width: 100%; height: auto; border-radius: 0.75rem; background: #fff;
-    box-shadow: 0 1px 2px oklch(0.25 0.045 265 / 0.08), 0 12px 32px -12px oklch(0.25 0.045 265 / 0.28); }
+  /* Media */
+  figure { break-inside: avoid; }
+  .media { max-width: var(--media); margin: 2rem auto 2.5rem; }
+  .media.cover { margin-top: 1.5rem; }
+  .frame { padding: clamp(1rem, 4.5vw, 2.5rem); border-radius: 1.25rem; background: var(--panel); }
+  .frame.tight { padding: clamp(1rem, 3vw, 1.5rem); }
+  .window { display: block; width: 100%; height: auto; border-radius: 0.75rem; background: #fff; box-shadow: var(--shadow-window); }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
-  figcaption { width: min(var(--col), 100%); margin: 0.85rem auto 0; font-size: 13px; color: var(--ink-faint); line-height: 1.55; }
+  figcaption { max-width: var(--column); margin: 0.75rem auto 0; font-size: var(--step--2); line-height: 1.45;
+    color: var(--ink-faint); text-align: justify; hyphens: auto; }
 
-  /* Component list (Privy "agent nodes") */
-  .nodes { display: grid; gap: 0.9rem; margin: 0.5rem 0 1rem; }
-  .node-h { display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
-  .node-h .mono { color: var(--ink); }
-  .node p { margin: 0.1rem 0 0; color: var(--ink-muted); }
-  .tag { font-family: "Geist Mono", ui-monospace, monospace; font-size: 10.5px; font-weight: 500; letter-spacing: 0.04em;
-    color: var(--ink-muted); border: 1px solid var(--rule); border-radius: 999px; padding: 0 0.45rem; line-height: 1.6; }
-  .tag.focal { color: var(--link); border-color: var(--link); }
+  /* Components */
+  .col > .nodes { display: grid; gap: 0.85rem; margin-top: 0.85rem; padding-left: 1rem; border-left: 1px solid var(--rule); }
+  .node-h { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .node-h .mono { font-size: var(--step--1); color: var(--ink); }
+  .node p { margin-top: 0.1rem; }
+  .tag { padding: 0 0.45rem; border-radius: 999px; background: var(--panel); font-size: var(--step--2); line-height: 1.6;
+    color: var(--ink-muted); }
+  .tag.focal { background: oklch(0.5 0.24 265 / 0.1); color: var(--link); }
 
   /* Challenges */
-  .challenge { margin: 0 0 1.6rem; break-inside: avoid; }
+  .challenge { break-inside: avoid; }
+  .col > .challenge { margin-top: 1.375rem; }
+  .challenge h3 { margin-bottom: 0.4rem; }
   .challenge .row { display: grid; grid-template-columns: 4.6rem 1fr; gap: 0 0.75rem; }
-  .challenge .k { font-size: 13px; color: var(--ink-faint); padding-top: 0.2rem; }
-  .challenge .row p { margin: 0 0 0.35rem; }
+  .challenge .k { font-size: var(--step--2); color: var(--ink-faint); padding-top: 0.2rem; text-align: left; }
+  .challenge .row p { margin-bottom: 0.35rem; }
 
   /* Results table */
-  table { width: 100%; border-collapse: collapse; font-size: 14.5px; line-height: 1.5; }
-  th { text-align: left; font-weight: 380; font-size: 13px; color: var(--ink-faint); padding: 0 0.5rem 0.4rem 0; border-bottom: 1px solid var(--rule); }
+  table { width: 100%; border-collapse: collapse; font-size: var(--step--1); line-height: 1.5; }
+  th { text-align: left; font-weight: var(--weight-body); font-size: var(--step--2); color: var(--ink-faint);
+    padding: 0 0.5rem 0.4rem 0; border-bottom: 1px solid var(--rule); }
   td { padding: 0.55rem 0.5rem 0.55rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
-  td.v { font-family: "Geist Mono", ui-monospace, monospace; font-weight: 500; font-variant-numeric: tabular-nums;
-    color: var(--pass); white-space: nowrap; font-size: 13.5px; letter-spacing: 0; padding-right: 1.1rem; }
-  td.t { color: var(--ink-muted); white-space: nowrap; font-family: "Geist Mono", ui-monospace, monospace; font-size: 13px; letter-spacing: 0; }
+  td.v { font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; color: var(--pass);
+    white-space: nowrap; font-size: 0.86rem; letter-spacing: -0.01em; padding-right: 1.1rem; }
+  td.t { color: var(--ink-muted); white-space: nowrap; font-family: var(--font-mono); font-size: var(--step--2); letter-spacing: -0.01em; }
   td.how { color: var(--ink-muted); }
-  .wide-table { width: min(34rem, 100% - 32px); margin: 1rem auto 1.5rem; break-inside: avoid; }
+  .wide-table { max-width: 34rem; margin: 2rem auto 2.5rem; break-inside: avoid; }
 
-  .links { display: grid; gap: 0.2rem; }
+  .links dd { text-align: left; overflow-wrap: anywhere; }
   footer { margin-top: 3.5rem; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
 
-  svg text { font-family: "Inter", system-ui, sans-serif; letter-spacing: 0.01em; }
-  svg .m { font-family: "Geist Mono", ui-monospace, monospace; letter-spacing: 0; }
+  svg text { font-family: var(--font-body); letter-spacing: 0.01em; }
+  svg .m { font-family: var(--font-mono); letter-spacing: 0; }
   .frame.diagram { padding: 0.75rem; }
   .diagram-container { width: 100%; overflow-x: auto; }
   .diagram-container > svg { width: 100%; min-width: 720px; display: block; }
 
   @media (max-width: 640px) {
     .pair { grid-template-columns: 1fr; }
-    .frame { padding: 1rem; }
   }
 
   @page { size: A4; margin: 14mm 0 14mm; }
   @media print {
-    :root { --fs: 13px; --col: 33rem; --media: 41rem; }
-    body { line-height: 1.6; }
-    .facts > div, .challenge .row { break-inside: avoid; }
-    footer { margin-top: 1rem; padding-top: 0.6rem; }
-    .links { gap: 0; }
-    main { padding: 0; }
-    h1 { margin-top: 1.75rem; }
-    h2 { font-size: 15.5px; margin-top: 2rem; break-after: avoid; }
-    h3 { break-after: avoid; }
-    .media { margin: 1.6rem auto; }
-    .frame { padding: 1.5rem; }
-    .ledger .v { font-size: 12.5px; }
-    table { font-size: 12.5px; }
-    td.v, td.t { font-size: 11.5px; }
-    .wide-table { width: 40rem; }
+    :root { --step-0: 13px; --step--1: 11.6px; --step--2: 10.5px; --step-h2: 15.5px; --column: 33rem; --media: 41rem; }
     html, body { background: #fff; }
-    .media.cover { margin-top: 1.25rem; }
+    body { line-height: 1.6; }
+    main { padding: 0; }
+    .halo { display: none; }
+    .col > * + * { margin-top: 0.9rem; }
+    .col > h2:not(:first-child), .col + section.col { margin-top: 1.6rem; }
+    .col p, ul.lead, .summary { line-height: 1.6; }
+    ul.lead { gap: 0.5rem; }
+    h2 { break-after: avoid; }
+    h3 { break-after: avoid; }
+    .media { margin: 1.4rem auto; }
+    .media.cover { margin-top: 1.1rem; }
+    .frame { padding: 1.5rem; }
     .media.cover .frame { padding: 1.25rem 2.5rem; }
-    .window.narrow { width: 62%; margin-inline: auto; }
+    .frame.tight { padding: 1.1rem 1.25rem; }
     .frame.tight > svg { display: block; width: 92%; margin-inline: auto; }
+    .frame.diagram { padding: 0.75rem; }
     .diagram-container { overflow-x: visible; }
     .diagram-container > svg { min-width: 0; }
-    .frame.tight { padding: 1.1rem 1.25rem; }
-    h1 { margin-top: 1.25rem; }
-    footer { break-inside: avoid; }
-    .screen-only { display: none; }
+    .window.narrow { width: 62%; margin-inline: auto; }
+    .facts > div, .challenge .row { break-inside: avoid; }
     td { padding-top: 0.38rem; padding-bottom: 0.38rem; }
-    .wide-table { margin-bottom: 0.5rem; }
+    td.v { font-size: 11px; }
+    .wide-table { max-width: 40rem; margin: 1rem auto 0.5rem; }
+    footer { margin-top: 1rem; padding-top: 0.6rem; break-inside: avoid; }
+    .screen-only { display: none; }
     .node, .callout, li { break-inside: avoid; }
-    a { color: var(--link); }
   }
 </style>
+<script>if (window.WebGLRenderingContext) document.documentElement.classList.add('halo-gl');</script>
 </head>
 <body>
+<div class="halo" aria-hidden="true" data-halo>
+  <div class="halo-spectrum"></div>
+  <div class="halo-rays"></div>
+  <canvas class="halo-canvas"></canvas>
+</div>
 <main>
 
 <div class="col">
-  <div class="topline">
-    <span>Case study</span>
-    <span class="sep"></span>
-    <a href="https://rozi.tail7d5bfc.ts.net:10000/">Live demo</a>
-    <a href="https://github.com/rozi-bb/darglobal-property-assistant">Source on GitHub</a>
-    <a class="screen-only" href="Rozi-DarGlobal-case-study.pdf">PDF</a>
+  <p class="meta">
+    <span class="meta-links">
+      <a href="https://rozi.tail7d5bfc.ts.net:10000/">Live demo</a>
+      <a class="icon-link" href="https://github.com/rozi-bb/darglobal-property-assistant"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12.001 2C6.47598 2 2.00098 6.475 2.00098 12C2.00098 16.425 4.86348 20.1625 8.83848 21.4875C9.33848 21.575 9.52598 21.275 9.52598 21.0125C9.52598 20.775 9.51348 19.9875 9.51348 19.15C7.00098 19.6125 6.35098 18.5375 6.15098 17.975C6.03848 17.6875 5.55098 16.8 5.12598 16.5625C4.77598 16.375 4.27598 15.9125 5.11348 15.9C5.90098 15.8875 6.46348 16.625 6.65098 16.925C7.55098 18.4375 8.98848 18.0125 9.56348 17.75C9.65098 17.1 9.91348 16.6625 10.201 16.4125C7.97598 16.1625 5.65098 15.3 5.65098 11.475C5.65098 10.3875 6.03848 9.4875 6.67598 8.7875C6.57598 8.5375 6.22598 7.5125 6.77598 6.1375C6.77598 6.1375 7.61348 5.875 9.52598 7.1625C10.326 6.9375 11.176 6.825 12.026 6.825C12.876 6.825 13.726 6.9375 14.526 7.1625C16.4385 5.8625 17.276 6.1375 17.276 6.1375C17.826 7.5125 17.476 8.5375 17.376 8.7875C18.0135 9.4875 18.401 10.375 18.401 11.475C18.401 15.3125 16.0635 16.1625 13.8385 16.4125C14.201 16.725 14.5135 17.325 14.5135 18.2625C14.5135 19.6 14.501 20.675 14.501 21.0125C14.501 21.275 14.6885 21.5875 15.1885 21.4875C19.259 20.1133 21.9999 16.2963 22.001 12C22.001 6.475 17.526 2 12.001 2Z"/></svg>Source on GitHub</a>
+      <a class="screen-only" href="Rozi-DarGlobal-case-study.pdf">PDF</a>
+    </span>
     <span>8 min read</span>
-  </div>
+  </p>
 </div>
 
 <figure class="media cover">
@@ -179,14 +312,14 @@
 
 <header class="col">
   <h1>DarGlobal Property Assistant</h1>
-  <p class="kicker">An agentic chatbot that answers questions about DarGlobal projects and the Saudi property market, built
+  <h2>TL;DR</h2>
+  <p class="summary">An agentic chatbot that answers questions about DarGlobal projects and the Saudi property market, built
     on scraped DarGlobal and Wasalt data. Every link and price in an answer is checked in code before the user sees it.</p>
-
-  <dl class="facts">
-    <div><dt>TL;DR</dt><dd>One LangChain&nbsp;v1 agent with four tools: hybrid search over DarGlobal content, SQL search
+  <p>One LangChain&nbsp;v1 agent with four tools: hybrid search over DarGlobal content, SQL search
       and market statistics over Wasalt listings, and a clarifying question with buttons. A middleware layer checks each
       draft answer against the tool results and sends it back for revision if a link, price or source is wrong. Shipped
-      with Docker Compose and running on a public URL.</dd></div>
+      with Docker Compose and running on a public URL.</p>
+  <dl class="facts">
     <div><dt>My role</dt><dd>Solo: requirements, data pipeline, agent, backend, UI, evaluation and deployment.</dd></div>
     <div><dt>Time &amp; status</dt><dd>3 days (brief received 18 Nov 2026, delivered 20 Nov 2026). Technical
       assignment; live and open source.</dd></div>
@@ -194,7 +327,7 @@
       <div class="ledger">
         <span class="v">24/24</span><span class="l">evaluation cases passed (correct and sourced)</span>
         <span class="v">0</span><span class="l">answers with an invented link or price</span>
-        <span class="v">~1&nbsp;s</span><span class="l">to the first streamed step on the live URL</span>
+        <span class="v plain">~1&nbsp;s</span><span class="l">to the first streamed step on the live URL</span>
       </div>
     </dd></div>
     <div><dt>Stack</dt><dd>Python 3.12 · LangChain v1 / LangGraph · DeepSeek (OpenAI-compatible) · Postgres 16 +
@@ -260,12 +393,12 @@
         <marker id="arch-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1d4ce9"/></marker>
       </defs>
       <style>
-        .arch .n { font: 600 12px "Inter", system-ui, sans-serif; fill: #172137; letter-spacing: 0; }
-        .arch .s { font: 400 9px "Geist Mono", ui-monospace, monospace; fill: #455066; letter-spacing: 0; }
-        .arch .tg { font: 500 7px "Geist Mono", ui-monospace, monospace; letter-spacing: 0.08em; }
-        .arch .al { font: 400 8px "Geist Mono", ui-monospace, monospace; letter-spacing: 0.06em; }
-        .arch .le { font: 500 8px "Geist Mono", ui-monospace, monospace; fill: #455066; letter-spacing: 0.18em; }
-        .arch .lg { font: 400 9px "Inter", system-ui, sans-serif; fill: #455066; letter-spacing: 0; }
+        .arch .n { font: 600 12px "Inter Variable", system-ui, sans-serif; fill: #172137; letter-spacing: 0; }
+        .arch .s { font: 400 9px "Geist Mono Variable", ui-monospace, monospace; fill: #455066; letter-spacing: 0; }
+        .arch .tg { font: 500 7px "Geist Mono Variable", ui-monospace, monospace; letter-spacing: 0.08em; }
+        .arch .al { font: 400 8px "Geist Mono Variable", ui-monospace, monospace; letter-spacing: 0.06em; }
+        .arch .le { font: 500 8px "Geist Mono Variable", ui-monospace, monospace; fill: #455066; letter-spacing: 0.18em; }
+        .arch .lg { font: 400 9px "Inter Variable", system-ui, sans-serif; fill: #455066; letter-spacing: 0; }
       </style>
 
       <rect width="720" height="532" rx="8" fill="#f3f7ff"/>
@@ -398,7 +531,7 @@
   <p>481 URLs from the official sitemap, fetched as archived copies from the Wayback Machine because the live site
     returns a CAPTCHA to scripts. Text comes from the CMS JSON embedded in each page, so there is no menu or footer
     noise.</p>
-  <div class="ledger" style="margin-bottom:1rem">
+  <div class="ledger">
     <span class="v plain">396 + 5</span><span class="l">pages (archived, plus older fallback copies)</span>
     <span class="v plain">40</span><span class="l">projects</span>
     <span class="v plain">2,701</span><span class="l">text chunks: 1,868 blog · 318 general · 314 press · 201 project</span>
@@ -407,7 +540,7 @@
   <h3>Wasalt</h3>
   <p>A listing snapshot taken on 19–20 Nov 2026 through the public sitemap, following robots.txt and llms.txt.
     Advertiser contact details are not stored.</p>
-  <div class="ledger" style="margin-bottom:1rem">
+  <div class="ledger">
     <span class="v plain">1,307 → 1,172</span><span class="l">raw → clean listings</span>
     <span class="v plain">135</span><span class="l">rejected: 91 duplicates, 38 implausible prices, 4 extreme for their type, 2 empty</span>
     <span class="v plain">742 / 430</span><span class="l">for sale / for rent, across 10 cities</span>
@@ -595,17 +728,256 @@
   </ul>
 
   <h2>Links</h2>
-  <div class="links">
-    <a href="https://rozi.tail7d5bfc.ts.net:10000/">Live demo: rozi.tail7d5bfc.ts.net:10000</a>
-    <a href="https://rozi.tail7d5bfc.ts.net:10000/case-study/">This case study online: rozi.tail7d5bfc.ts.net:10000/case-study</a>
-    <a href="https://github.com/rozi-bb/darglobal-property-assistant">Source: github.com/rozi-bb/darglobal-property-assistant</a>
-    <a href="https://github.com/rozi-bb/darglobal-property-assistant/blob/main/docs/eval-results.md">Evaluation results (all 24 cases with answers)</a>
-  </div>
+  <dl class="facts links">
+    <div><dt>Live demo</dt><dd><a href="https://rozi.tail7d5bfc.ts.net:10000/">rozi.tail7d5bfc.ts.net:10000</a></dd></div>
+    <div><dt>Case study</dt><dd><a href="https://rozi.tail7d5bfc.ts.net:10000/case-study/">rozi.tail7d5bfc.ts.net:10000/case-study</a></dd></div>
+    <div><dt>Source</dt><dd><a href="https://github.com/rozi-bb/darglobal-property-assistant">github.com/rozi-bb/darglobal-property-assistant</a></dd></div>
+    <div><dt>Evaluation</dt><dd><a href="https://github.com/rozi-bb/darglobal-property-assistant/blob/main/docs/eval-results.md">All 24 cases with answers</a></dd></div>
+  </dl>
 
   <footer class="small">Rozi · Senior AI Engineer – Agentic Systems assignment, DarGlobal · Nov 2026. DarGlobal and
     Wasalt content belongs to their owners and is used only to demonstrate the assistant.</footer>
 </section>
 
 </main>
+<script>
+  const VERT = `
+    attribute vec2 aPos;
+    void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
+  `;
+
+  const FRAG = `
+    precision highp float;
+
+    uniform vec2 uSize;      // canvas size in CSS pixels
+    uniform vec2 uBuffer;    // canvas size in device pixels
+    uniform float uTime;
+    uniform float uReveal;
+
+    const float TAU = 6.28318530718;
+
+    vec3 oklabToLinear(vec3 lab) {
+      vec3 lms = vec3(
+        lab.x + 0.3963377774 * lab.y + 0.2158037573 * lab.z,
+        lab.x - 0.1055613458 * lab.y - 0.0638541728 * lab.z,
+        lab.x - 0.0894841775 * lab.y - 1.2914855480 * lab.z
+      );
+      lms = lms * lms * lms;
+      return vec3(
+        4.0767416621 * lms.x - 3.3077115913 * lms.y + 0.2309699292 * lms.z,
+        -1.2684380046 * lms.x + 2.6097574011 * lms.y - 0.3413193965 * lms.z,
+        -0.0041960863 * lms.x - 0.7034186147 * lms.y + 1.7076147010 * lms.z
+      );
+    }
+
+    vec3 linearToSrgb(vec3 c) {
+      c = clamp(c, 0.0, 1.0);
+      return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c));
+    }
+
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+
+    // One band of rays: brightness rises and falls with the angle from the
+    // source, and the whole band slides sideways at its own speed.
+    float band(float a, float freq, float speed, float offset, float t) {
+      return 0.5 + 0.5 * sin(a * freq + t * speed + offset);
+    }
+
+    void main() {
+      vec2 coord = vec2(gl_FragCoord.x, uBuffer.y - gl_FragCoord.y) * (uSize / uBuffer);
+      vec2 size = uSize;
+      float t = uTime;
+
+      // The light lives inside an ellipse hanging from the top centre, wider
+      // on phones so the crown still spans the screen.
+      float narrow = 1.0 - smoothstep(480.0, 900.0, size.x);
+      vec2 radius = vec2(
+        0.5 * size.x * mix(1.12, 1.4, narrow) * mix(0.2, 1.0, uReveal),
+        size.y * 0.6 * mix(0.15, 1.0, uReveal)
+      );
+      float field = length(vec2(coord.x - 0.5 * size.x, coord.y) / radius);
+      if (field >= 1.0) {
+        gl_FragColor = vec4(0.0);
+        return;
+      }
+
+      // Source above the viewport, wandering side to side on two unrelated
+      // periods so the fan never settles square.
+      float wander = sin(t * 0.17) * 0.6 + sin(t * 0.11 + 1.7) * 0.4;
+      vec2 source = vec2((0.5 + 0.04 * wander) * size.x, -0.08 * size.y);
+      vec2 d = coord - source;
+      float dist = length(d);
+      float angle = atan(d.x, d.y);
+
+      // Aurora curtains: slow waves travel down each ray and bend it, so the
+      // beams ripple like fabric instead of rotating as a rigid fan.
+      float sway = angle
+        + 0.06 * sin(t * 0.8 + dist * 0.007 + angle * 2.3)
+        + 0.035 * sin(t * 0.47 - dist * 0.012 + angle * 3.1);
+
+      float spread = pow(max(cos(sway), 0.0), 0.45);
+      float reach = clamp(1.0 - dist / (size.y * 1.15), 0.0, 1.0);
+
+      // Broad, overlapping bands rather than thin beams, so neighbouring
+      // colours melt into each other instead of reading as separate lines.
+      float rays =
+        band(sway, 9.0, 0.55, 0.0, t) * 0.45 +
+        band(sway, 5.0, -0.38, 1.3, t) * 0.35 +
+        band(sway, 15.0, 0.9, 2.1, t) * 0.2;
+      // A high floor keeps a continuous glow under the bands.
+      rays = mix(0.62, 1.0, smoothstep(0.1, 0.95, rays));
+
+      // Hue follows the angle so the fan reads as a spectrum, and drifts so
+      // colours travel across the beams over time.
+      float hue = TAU * (sway * 0.42 + t * 0.018);
+      float crest = smoothstep(0.8, 1.0, rays);
+      float lightness = 0.75 + crest * 0.05;
+      float chroma = 0.17;
+      vec3 rgb = linearToSrgb(oklabToLinear(vec3(lightness, chroma * cos(hue), chroma * sin(hue))));
+
+      float edge = 1.0 - smoothstep(0.3, 1.0, field);
+      float alpha = rays * spread * reach * edge * uReveal * 0.92;
+      // Dither so the long gradients do not band.
+      alpha = clamp(alpha + (hash(gl_FragCoord.xy + t) - 0.5) / 255.0, 0.0, 1.0);
+
+      gl_FragColor = vec4(rgb * alpha, alpha);
+    }
+  `;
+
+  const RENDER_SCALE = 0.5;
+  const SPEED = 0.6;
+  const REVEAL_MS = 1600;
+  const CLOCK = 'halo-clock';
+
+  function compile(gl, type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return gl.getShaderParameter(shader, gl.COMPILE_STATUS) ? shader : null;
+  }
+
+  function mount(halo) {
+    const canvas = halo.querySelector('.halo-canvas');
+    const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: false });
+    if (!gl) return false;
+
+    const vert = compile(gl, gl.VERTEX_SHADER, VERT);
+    const frag = compile(gl, gl.FRAGMENT_SHADER, FRAG);
+    if (!vert || !frag) return false;
+    const program = gl.createProgram();
+    gl.attachShader(program, vert);
+    gl.attachShader(program, frag);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return false;
+    gl.useProgram(program);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(program, 'aPos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    const uSize = gl.getUniformLocation(program, 'uSize');
+    const uBuffer = gl.getUniformLocation(program, 'uBuffer');
+    const uTime = gl.getUniformLocation(program, 'uTime');
+    const uReveal = gl.getUniformLocation(program, 'uReveal');
+
+    const still = matchMedia('(prefers-reduced-motion: reduce)');
+    let width = 0;
+    let height = 0;
+
+    function resize() {
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
+      const scale = Math.min(devicePixelRatio, 2) * RENDER_SCALE;
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+
+    function draw(time, reveal) {
+      gl.uniform2f(uSize, width, height);
+      gl.uniform2f(uBuffer, canvas.width, canvas.height);
+      gl.uniform1f(uTime, time);
+      gl.uniform1f(uReveal, reveal);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    // Start mid-cycle so the first frame already looks settled. The clock
+    // only advances while frames run, so a paused light resumes where it
+    // stopped instead of jumping ahead. It carries across pages, so the light
+    // reveals once per visit and the next page opens with it already lit.
+    const T0 = 40;
+    let clock = 0;
+    let last = 0;
+    let frame = 0;
+    let visible = true;
+
+    try {
+      clock = Number(sessionStorage.getItem(CLOCK)) || 0;
+    } catch {}
+
+    const saveClock = () => {
+      try {
+        sessionStorage.setItem(CLOCK, String(clock));
+      } catch {}
+    };
+
+    function render() {
+      if (still.matches) return draw(T0, 1);
+      const x = Math.min(clock / REVEAL_MS, 1);
+      draw(T0 + (clock / 1000) * SPEED, 1 - (1 - x) ** 3);
+    }
+
+    function tick(now) {
+      if (last) clock += Math.min(now - last, 100);
+      last = now;
+      render();
+      frame = requestAnimationFrame(tick);
+    }
+
+    function play() {
+      cancelAnimationFrame(frame);
+      last = 0;
+      if (still.matches) {
+        render();
+      } else if (visible && !document.hidden) {
+        frame = requestAnimationFrame(tick);
+      }
+    }
+
+    function pause() {
+      cancelAnimationFrame(frame);
+    }
+
+    resize();
+    render();
+
+    // Resizing clears the canvas after this frame's draw, so redraw right away
+    // or the light blanks for every frame of a window drag.
+    new ResizeObserver(() => {
+      resize();
+      render();
+    }).observe(canvas);
+
+    addEventListener('pageswap', saveClock);
+    addEventListener('pagehide', saveClock);
+
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      visible ? play() : pause();
+    }).observe(halo);
+
+    document.addEventListener('visibilitychange', () => (document.hidden ? pause() : play()));
+    still.addEventListener('change', play);
+    play();
+    return true;
+  }
+
+  const halo = document.querySelector('[data-halo]');
+  if (halo && !mount(halo)) document.documentElement.classList.remove('halo-gl');
+</script>
 </body>
 </html>
