@@ -13,7 +13,7 @@ from collections import defaultdict
 from typing import Any, Literal
 
 from langchain_core.tools import tool
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from agent.db import fetch_all
 
@@ -82,25 +82,86 @@ class _WasaltBase(BaseModel):
         return normalize_choice(v, PROPERTY_TYPES, TYPE_ALIASES)
 
 
-class ListingSearch(_WasaltBase):
-    """Filter iklan Wasalt."""
+class _FilterBase(_WasaltBase):
+    """Filter yang dipakai bersama oleh cari iklan dan statistik pasar."""
 
     property_type: PropertyType | None = Field(default=None, description="Property type; omit for all types.")
+    bedrooms: int | None = Field(
+        default=None, ge=0, le=20, description="Exact number of bedrooms. Do not combine with min/max_bedrooms."
+    )
+    min_bedrooms: int | None = Field(default=None, ge=0, le=20, description="At least this many bedrooms.")
+    max_bedrooms: int | None = Field(default=None, ge=0, le=20, description="At most this many bedrooms.")
+    min_area_sqm: float | None = Field(default=None, ge=0, description="Minimum area in square meters.")
+    max_area_sqm: float | None = Field(default=None, ge=0, description="Maximum area in square meters.")
+    max_age_years: int | None = Field(
+        default=None, ge=0, le=100, description="Maximum building age in years (0 = new)."
+    )
+    district: str | None = Field(default=None, max_length=60, description="District name (partial match).")
+
+    @model_validator(mode="after")
+    def _check_ranges(self) -> _FilterBase:
+        if self.bedrooms is not None and (self.min_bedrooms is not None or self.max_bedrooms is not None):
+            raise ValueError("use either bedrooms (exact) or min_bedrooms/max_bedrooms, not both")
+        check_range(self, "min_bedrooms", "max_bedrooms")
+        check_range(self, "min_area_sqm", "max_area_sqm")
+        return self
+
+
+class ListingSearch(_FilterBase):
+    """Filter iklan Wasalt."""
+
     min_price: float | None = Field(default=None, ge=0, description="Minimum price in SAR (yearly rent if purpose=rent).")
     max_price: float | None = Field(default=None, ge=0, description="Maximum price in SAR (yearly rent if purpose=rent).")
-    bedrooms: int | None = Field(default=None, ge=0, le=20, description="Exact number of bedrooms.")
-    district: str | None = Field(default=None, max_length=60, description="District name (partial match).")
-    sort: Literal["price_asc", "price_desc", "newest"] = Field(default="price_asc")
+    sort: Literal["price_asc", "price_desc", "newest", "area_desc", "price_per_sqm_asc"] = Field(
+        default="price_asc",
+        description="price_asc = cheapest first, area_desc = largest first, "
+        "price_per_sqm_asc = best value per m² first, newest = most recently published.",
+    )
     limit: int = Field(default=5, ge=1, le=10, description="How many listings to return (max 10).")
 
+    @model_validator(mode="after")
+    def _check_price(self) -> ListingSearch:
+        check_range(self, "min_price", "max_price")
+        return self
 
-class MarketStatsQuery(_WasaltBase):
-    """Filter statistik pasar Wasalt."""
 
-    property_type: PropertyType | None = Field(
-        default=None, description="Property type; omit to get stats for every type in the city."
-    )
-    bedrooms: int | None = Field(default=None, ge=0, le=20, description="Exact number of bedrooms.")
+class MarketStatsQuery(_FilterBase):
+    """Filter statistik pasar Wasalt (tanpa filter harga: statistik harus melihat semua harga)."""
+
+
+def check_range(model: BaseModel, lo_field: str, hi_field: str) -> None:
+    """Tolak rentang terbalik (min > max) supaya agent memperbaiki argumennya."""
+    lo, hi = getattr(model, lo_field), getattr(model, hi_field)
+    if lo is not None and hi is not None and lo > hi:
+        raise ValueError(f"{lo_field} ({lo}) must not be greater than {hi_field} ({hi})")
+
+
+# Filter opsional → (kolom, operator). Nama field = nama parameter SQL.
+RANGE_FILTERS: dict[str, tuple[str, str]] = {
+    "bedrooms": ("bedrooms", "="),
+    "min_bedrooms": ("bedrooms", ">="),
+    "max_bedrooms": ("bedrooms", "<="),
+    "min_area_sqm": ("area_sqm", ">="),
+    "max_area_sqm": ("area_sqm", "<="),
+    "max_age_years": ("age_years", "<="),
+}
+# Kolom yang sering kosong: iklan tanpa nilai ini otomatis tidak ikut saat difilter.
+SPARSE_COLUMNS = {"bedrooms": "bedrooms", "area_sqm": "area", "age_years": "building age"}
+
+
+def active_filters(q: _FilterBase) -> list[str]:
+    """Nama filter opsional yang sedang dipakai (untuk hint saat hasil kosong)."""
+    optional = q.model_dump(exclude_none=True, exclude={"city", "purpose", "sort", "limit"})
+    return list(optional)
+
+
+def missing_data_note(q: _FilterBase) -> str | None:
+    """Ingatkan agent bahwa iklan tanpa data kamar/luas/umur tidak ikut dihitung."""
+    cols = {RANGE_FILTERS[f][0] for f in RANGE_FILTERS if getattr(q, f) is not None}
+    labels = [SPARSE_COLUMNS[c] for c in SPARSE_COLUMNS if c in cols]
+    if not labels:
+        return None
+    return f"Listings without {' / '.join(labels)} data are excluded by these filters."
 
 
 def price_column(purpose: str) -> str:
@@ -116,9 +177,14 @@ def build_where(q: ListingSearch | MarketStatsQuery) -> tuple[str, dict[str, Any
     if q.property_type:
         clauses.append("property_type = %(property_type)s")
         params["property_type"] = q.property_type
-    if q.bedrooms is not None:
-        clauses.append("bedrooms = %(bedrooms)s")
-        params["bedrooms"] = q.bedrooms
+    for name, (column, op) in RANGE_FILTERS.items():
+        value = getattr(q, name)
+        if value is not None:
+            clauses.append(f"{column} {op} %({name})s")
+            params[name] = value
+    if q.district:
+        clauses.append("district ILIKE %(district)s")
+        params["district"] = f"%{q.district.strip()}%"
     if isinstance(q, ListingSearch):
         if q.min_price is not None:
             clauses.append(f"{price} >= %(min_price)s")
@@ -126,9 +192,6 @@ def build_where(q: ListingSearch | MarketStatsQuery) -> tuple[str, dict[str, Any
         if q.max_price is not None:
             clauses.append(f"{price} <= %(max_price)s")
             params["max_price"] = q.max_price
-        if q.district:
-            clauses.append("district ILIKE %(district)s")
-            params["district"] = f"%{q.district.strip()}%"
     return " AND ".join(clauses), params
 
 
@@ -136,6 +199,8 @@ ORDER_BY = {
     "price_asc": "{price} ASC, id",
     "price_desc": "{price} DESC, id",
     "newest": "published_at DESC NULLS LAST, id",
+    "area_desc": "area_sqm DESC NULLS LAST, id",
+    "price_per_sqm_asc": "price_per_sqm ASC NULLS LAST, id",
 }
 
 
@@ -145,7 +210,7 @@ def build_listing_query(q: ListingSearch) -> tuple[str, dict[str, Any]]:
     order = ORDER_BY[q.sort].format(price=price_column(q.purpose))
     sql = (
         "SELECT id, title, city, district, property_type, purpose, price_sar, rent_period, rent_yearly_sar, "
-        "bedrooms, bathrooms, area_sqm, price_per_sqm, furnishing, url, snapshot_date, "
+        "bedrooms, bathrooms, area_sqm, price_per_sqm, age_years, furnishing, url, snapshot_date, "
         "count(*) OVER () AS total_matches "
         f"FROM wasalt_listings WHERE {where} ORDER BY {order} LIMIT %(limit)s"
     )
@@ -243,6 +308,20 @@ def price_basis(purpose: str) -> str:
     return "yearly rent in SAR" if purpose == "rent" else "total sale price in SAR"
 
 
+def not_found_hint(q: _FilterBase, kind: str) -> str:
+    """Saran ke agent filter mana yang bisa dilonggarkan."""
+    used = active_filters(q)
+    if not used:
+        return f"No Wasalt {kind} for this city and purpose. Try another city or purpose."
+    return f"No Wasalt {kind} matches. Try relaxing or removing: {', '.join(used)}."
+
+
+def with_note(data: dict[str, Any], q: _FilterBase) -> dict[str, Any]:
+    """Tambahkan `filter_note` bila filter memakai kolom yang sering kosong."""
+    note = missing_data_note(q)
+    return {**data, "filter_note": note} if note else data
+
+
 def dumps(data: dict[str, Any]) -> str:
     """JSON untuk hasil tool."""
     return json.dumps(data, ensure_ascii=False, default=str)
@@ -250,8 +329,10 @@ def dumps(data: dict[str, Any]) -> str:
 
 @tool("search_wasalt_listings", args_schema=ListingSearch)
 async def search_wasalt_listings(**kwargs: Any) -> str:
-    """Search Saudi property listings from Wasalt (wasalt.sa) by city, sale/rent, type, price and bedrooms.
+    """Search Saudi property listings from Wasalt (wasalt.sa).
 
+    Filters: city, sale/rent, type, price range, bedrooms (exact or min/max), area range in m²,
+    maximum building age, district. Sort by price, size, price per m² or newest.
     Use for questions about specific listings available on the Saudi market. These are Wasalt ads,
     NOT DarGlobal projects. Prices are SAR; for rent, prices are per year.
     """
@@ -261,8 +342,8 @@ async def search_wasalt_listings(**kwargs: Any) -> str:
     filters = q.model_dump(exclude_none=True, exclude={"sort", "limit"})
     if not rows:
         return dumps({"source": SOURCE, "status": "not_found", "filters": filters,
-                      "hint": "No listing matches. Try relaxing price, bedrooms or district."})
-    return dumps({
+                      "hint": not_found_hint(q, "listing")})
+    return dumps(with_note({
         "source": SOURCE,
         "status": "ok",
         "filters": filters,
@@ -271,7 +352,7 @@ async def search_wasalt_listings(**kwargs: Any) -> str:
         "returned": len(rows),
         "listings": [format_listing(r) for r in rows],
         "note": snapshot_note(rows),
-    })
+    }, q))
 
 
 @tool("wasalt_market_stats", args_schema=MarketStatsQuery)
@@ -281,6 +362,7 @@ async def wasalt_market_stats(**kwargs: Any) -> str:
     Returns median, p25-p75 range, min-max, median price per square meter and sample size n
     (outliers removed with IQR).
 
+    Same filters as search_wasalt_listings except price (bedrooms, area range, building age, district).
     Use for "typical price", "average rent", or market comparison questions. Always report n;
     small_sample=true means fewer than 5 listings, so say the estimate is weak.
     """
@@ -290,12 +372,12 @@ async def wasalt_market_stats(**kwargs: Any) -> str:
     filters = q.model_dump(exclude_none=True)
     if not rows:
         return dumps({"source": SOURCE, "status": "not_found", "filters": filters,
-                      "hint": "No Wasalt listing for this filter. Try without property_type or bedrooms."})
-    return dumps({
+                      "hint": not_found_hint(q, "listing")})
+    return dumps(with_note({
         "source": SOURCE,
         "status": "ok",
         "filters": filters,
         "price_basis": price_basis(q.purpose),
         "groups": group_stats(rows),
         "note": snapshot_note(rows),
-    })
+    }, q))

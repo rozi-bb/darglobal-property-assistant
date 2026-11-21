@@ -109,8 +109,8 @@ Tidak dipakai: `HumanInTheLoopMiddleware` (untuk menyetujui aksi tool, sedangkan
 | Tool | Jenis | Input utama | Output |
 |---|---|---|---|
 | `search_darglobal` | RAG, hybrid search | `query` (bahasa Inggris, berdiri sendiri), `country?` | ≤ 4 potongan teks + URL + tanggal snapshot, atau `not_found`; dengan `country` juga daftar lengkap proyek di negara itu (`projects_in_country`) |
-| `search_wasalt_listings` | query tabel | `city`, `purpose`, `property_type?`, `min_price?`, `max_price?`, `bedrooms?`, `district?`, `sort`, `limit` (≤ 10) | daftar iklan + URL + `total_matches` |
-| `wasalt_market_stats` | query tabel | `city`, `purpose`, `property_type?`, `bedrooms?` | `n`, median, p25–p75, min–max, median harga/m² |
+| `search_wasalt_listings` | query tabel | `city`, `purpose`, `property_type?`, `min_price?`, `max_price?`, `bedrooms?` / `min_bedrooms?`–`max_bedrooms?`, `min_area_sqm?`–`max_area_sqm?`, `max_age_years?`, `district?`, `sort` (harga, `area_desc`, `price_per_sqm_asc`, `newest`), `limit` (≤ 10) | daftar iklan + URL + `total_matches` |
+| `wasalt_market_stats` | query tabel | `city`, `purpose`, `property_type?`, filter kamar/luas/umur/district yang sama (tanpa harga) | `n`, median, p25–p75, min–max, median harga/m² |
 | `ask_user` | interaksi (tanya balik) | `question`, `options` | jawaban user (lewat `interrupt`) |
 
 - Semua input divalidasi Pydantic (kota/tipe/purpose = enum dari data). Docs DeepSeek mengingatkan argumen tool

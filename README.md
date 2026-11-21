@@ -23,7 +23,7 @@ Try for example:
 - **One ReAct agent** (`create_agent` + middleware) that picks its own tools, up to 6 tool calls per question:
   - `search_darglobal`: hybrid search over DarGlobal website content (pgvector embeddings + BM25, fused with RRF,
     optional rerank).
-  - `search_wasalt_listings`: filtered SQL search over Wasalt listings (city, buy/rent, type, bedrooms, budget).
+  - `search_wasalt_listings`: filtered SQL search over Wasalt listings (city, buy/rent, type, budget, bedrooms, area, building age, district).
   - `wasalt_market_stats`: median price, p25–p75 range, price per m² and sample size, with outliers removed.
   - `ask_user`: a clarifying question with button options (LangGraph `interrupt`).
 - **Every answer names its source** (DarGlobal or Wasalt) and keeps them apart. Wasalt listings are never presented

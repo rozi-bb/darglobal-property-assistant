@@ -51,6 +51,44 @@ def test_sale_query_uses_sale_price() -> None:
     assert "rent_yearly_sar" not in sql.split("FROM")[1]
 
 
+def test_listing_query_area_bedroom_range_and_age() -> None:
+    q = ListingSearch(city="Riyadh", purpose="sale", property_type="Villa", min_area_sqm=400,
+                      max_area_sqm=900, min_bedrooms=3, max_bedrooms=5, max_age_years=2)
+    sql, params = build_listing_query(q)
+    for clause in ("area_sqm >= %(min_area_sqm)s", "area_sqm <= %(max_area_sqm)s",
+                   "bedrooms >= %(min_bedrooms)s", "bedrooms <= %(max_bedrooms)s", "age_years <= %(max_age_years)s"):
+        assert clause in sql
+    assert {"min_area_sqm", "max_area_sqm", "min_bedrooms", "max_bedrooms", "max_age_years"} <= set(params)
+    assert "400" not in sql  # angka user hanya lewat parameter
+
+
+@pytest.mark.parametrize(("sort", "order"), [("area_desc", "area_sqm DESC"),
+                                             ("price_per_sqm_asc", "price_per_sqm ASC")])
+def test_new_sort_options(sort: str, order: str) -> None:
+    sql, _ = build_listing_query(ListingSearch(city="Jeddah", purpose="rent", sort=sort))
+    assert f"ORDER BY {order}" in sql
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"min_price": 2_000_000, "max_price": 1_000_000},
+    {"min_area_sqm": 500, "max_area_sqm": 100},
+    {"min_bedrooms": 4, "max_bedrooms": 2},
+    {"bedrooms": 3, "min_bedrooms": 2},
+    {"min_area_sqm": -1},
+])
+def test_invalid_ranges_are_rejected(kwargs: dict) -> None:
+    with pytest.raises(ValidationError):
+        ListingSearch(city="Riyadh", purpose="sale", **kwargs)
+
+
+def test_stats_query_accepts_shared_filters_but_not_price() -> None:
+    q = MarketStatsQuery(city="Riyadh", purpose="rent", min_area_sqm=150, district="Narjis", max_age_years=5)
+    sql, params = build_stats_query(q)
+    assert "area_sqm >= %(min_area_sqm)s" in sql and "district ILIKE %(district)s" in sql
+    assert params["district"] == "%Narjis%"
+    assert "min_price" not in MarketStatsQuery.model_fields
+
+
 def test_stats_query_has_no_price_filter() -> None:
     sql, params = build_stats_query(MarketStatsQuery(city="Jeddah", purpose="sale", property_type="Villa"))
     assert "price_sar AS price" in sql
@@ -118,6 +156,32 @@ async def test_stats_tool_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
                    "hint": out["hint"]}
 
 
+async def test_search_tool_not_found_hint_and_filter_note(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict] = []
+
+    async def fake_fetch(sql: str, params: dict) -> list[dict]:
+        calls.append(params)
+        return [] if len(calls) == 1 else [{"id": 1, "purpose": "sale", "price_sar": 1e6, "area_sqm": 450.0,
+                                            "snapshot_date": "2026-11-20", "total_matches": 1}]
+
+    monkeypatch.setattr(wasalt, "fetch_all", fake_fetch)
+    args = {"city": "Riyadh", "purpose": "sale", "min_area_sqm": 400, "max_age_years": 2}
+    empty = json.loads(await wasalt.search_wasalt_listings.ainvoke(args))
+    assert empty["status"] == "not_found"
+    assert "min_area_sqm" in empty["hint"] and "max_age_years" in empty["hint"]
+    found = json.loads(await wasalt.search_wasalt_listings.ainvoke(args))
+    assert found["status"] == "ok" and "filter_note" in found
+
+
+async def test_stats_tool_without_sparse_filters_has_no_filter_note(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_fetch(sql: str, params: dict) -> list[dict]:
+        return [{"property_type": "Villa", "price": 1e6, "price_per_sqm": 3000.0, "snapshot_date": "2026-11-20"}]
+
+    monkeypatch.setattr(wasalt, "fetch_all", fake_fetch)
+    out = json.loads(await wasalt.wasalt_market_stats.ainvoke({"city": "Riyadh", "purpose": "sale"}))
+    assert out["status"] == "ok" and "filter_note" not in out
+
+
 @pytest.mark.integration
 async def test_tools_against_local_db() -> None:
     """Butuh Postgres lokal berisi data (`docker compose up -d db` + `dataprep.load_db`)."""
@@ -127,3 +191,7 @@ async def test_tools_against_local_db() -> None:
     assert all(item["rent_yearly_sar"] <= 80000 for item in out["listings"])
     stats = json.loads(await wasalt.wasalt_market_stats.ainvoke({"city": "Jeddah", "purpose": "sale"}))
     assert stats["groups"] and all(g["n"] > 0 for g in stats["groups"])
+    big = json.loads(await wasalt.search_wasalt_listings.ainvoke(
+        {"city": "Riyadh", "purpose": "sale", "property_type": "Villa", "min_area_sqm": 400, "min_bedrooms": 3}))
+    assert big["status"] in {"ok", "not_found"}
+    assert all(i["area_sqm"] >= 400 and i["bedrooms"] >= 3 for i in big.get("listings", []))
